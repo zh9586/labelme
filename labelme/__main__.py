@@ -90,7 +90,7 @@ def main():
         dest="store_data",
         action="store_false",
         help="stop storing image data to JSON file",
-        default=argparse.SUPPRESS,
+        default=argparse.SUPPRESS,  # 虽然你可以在代码中使用该参数，但它不会在 --help 输出中列出
     )
     parser.add_argument(
         "--autosave",
@@ -198,19 +198,19 @@ def main():
 
     translator = QtCore.QTranslator()
     translator.load(
-        QtCore.QLocale.system().name(),
-        osp.dirname(osp.abspath(__file__)) + "/translate",
+        QtCore.QLocale.system().name(),  # 这是获取当前系统的语言环境。例如 "en_US" 或 "zh_CN"
+        osp.dirname(osp.abspath(__file__)) + "/translate",  # 用来指定翻译文件的路径。
     )
     app = QtWidgets.QApplication(sys.argv)
-    app.setApplicationName(__appname__)
-    app.setWindowIcon(newIcon("icon"))
-    app.installTranslator(translator)
+    app.setApplicationName(__appname__)  # 设置软件名称为 labelme，影响应用程序名称，部分系统组件可能会使用
+    app.setWindowIcon(newIcon("icon"))  # 设置labelme软件的图标。
+    app.installTranslator(translator)  # 安装翻译软件。创建-->加载-->安装。就可以完成对界面的翻译。
     win = MainWindow(
         config=config,
         filename=filename,
         output_file=output_file,
         output_dir=output_dir,
-    )
+    )  # 实例化MainWindow，其继承与QtWidgets.QMainWindow
 
     if reset_config:
         logger.info("Resetting Qt config: %s" % win.settings.fileName())
@@ -219,7 +219,7 @@ def main():
 
     with logger.catch(), contextlib.redirect_stderr(new_target=_LoggerIO()):
         win.show()
-        win.raise_()
+        win.raise_()  # 将窗口放到顶层。
         sys.exit(app.exec_())
 
 

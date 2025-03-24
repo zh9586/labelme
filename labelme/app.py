@@ -43,11 +43,11 @@ from . import utils
 # - Zoom is too "steppy".
 
 
-LABEL_COLORMAP = imgviz.label_colormap()
+LABEL_COLORMAP = imgviz.label_colormap()  # abel_colormap() 生成一个 颜色查找表（colormap），用于将分类标签（如 0, 1, 2, ...）映射到特定的 RGB 颜色。
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    FIT_WINDOW, FIT_WIDTH, MANUAL_ZOOM = 0, 1, 2
+    FIT_WINDOW, FIT_WIDTH, MANUAL_ZOOM = 0, 1, 2  # 适应整个窗口大小而不改变其比例；宽度适应窗口；用户可以自由调整缩放级别，而不受窗口尺寸约束
 
     def __init__(
         self,
@@ -57,7 +57,7 @@ class MainWindow(QtWidgets.QMainWindow):
         output_file=None,
         output_dir=None,
     ):
-        if output is not None:
+        if output is not None:  # 如果传递了output,提示后续使用output_file
             logger.warning("argument output is deprecated, use output_file instead")
             if output_file is None:
                 output_file = output
@@ -65,37 +65,38 @@ class MainWindow(QtWidgets.QMainWindow):
         # see labelme/config/default_config.yaml for valid configuration
         if config is None:
             config = get_config()
-        self._config = config
+        self._config = config  # 配置文件，如果是None再获取下。
 
         # set default shape colors
-        Shape.line_color = QtGui.QColor(*self._config["shape"]["line_color"])
-        Shape.fill_color = QtGui.QColor(*self._config["shape"]["fill_color"])
+        Shape.line_color = QtGui.QColor(*self._config["shape"]["line_color"])  # 普通线条的颜色
+        Shape.fill_color = QtGui.QColor(*self._config["shape"]["fill_color"])  # 普通填充的颜色
         Shape.select_line_color = QtGui.QColor(
             *self._config["shape"]["select_line_color"]
-        )
+        )  # 选中状态线条的颜色
         Shape.select_fill_color = QtGui.QColor(
             *self._config["shape"]["select_fill_color"]
-        )
+        )  # 选中状态填充的颜色
         Shape.vertex_fill_color = QtGui.QColor(
             *self._config["shape"]["vertex_fill_color"]
-        )
+        )  # 形状顶点的颜色
         Shape.hvertex_fill_color = QtGui.QColor(
             *self._config["shape"]["hvertex_fill_color"]
-        )
+        )  # 形状顶点高亮的颜色
 
         # Set point size from config file
         Shape.point_size = self._config["shape"]["point_size"]
 
         super(MainWindow, self).__init__()
-        self.setWindowTitle(__appname__)
+        self.setWindowTitle(__appname__)  # 只影响该 QMainWindow 的标题栏
 
         # Whether we need to save or not.
-        self.dirty = False
+        self.dirty = False  # 是否有未保存的更改
 
-        self._noSelectionSlot = False
+        self._noSelectionSlot = False  # 是否禁用某些信号槽（避免递归触发）
 
-        self._copied_shapes = None
+        self._copied_shapes = None  # 存储被复制的形状
 
+        # 0 画完框后，弹出的对话框。
         # Main widgets and related state.
         self.labelDialog = LabelDialog(
             parent=self,
@@ -105,28 +106,43 @@ class MainWindow(QtWidgets.QMainWindow):
             completion=self._config["label_completion"],
             fit_to_content=self._config["fit_to_content"],
             flags=self._config["label_flags"],
-        )
+        )  # todo 可能是画完框弹出的哪个对话框。
 
         self.labelList = LabelListWidget()
         self.lastOpenDir = None
-
+        # 1 标记窗口，用来给不同标签赋予不同性质。
+        '''
+        flags:
+          occluded: false
+          truncated: false
+          difficult: false
+          verified: false
+        label_flags:
+          car:
+            - occluded
+            - difficult
+          person:
+            - truncated
+          dog:
+            - verified
+        '''
         self.flag_dock = self.flag_widget = None
-        self.flag_dock = QtWidgets.QDockWidget(self.tr("Flags"), self)
+        self.flag_dock = QtWidgets.QDockWidget(self.tr("Flags"), self)  # 一个可停靠窗口的实例
         self.flag_dock.setObjectName("Flags")
-        self.flag_widget = QtWidgets.QListWidget()
+        self.flag_widget = QtWidgets.QListWidget()  # 一个显示项目的列表部件的实例
         if config["flags"]:
-            self.loadFlags({k: False for k in config["flags"]})
-        self.flag_dock.setWidget(self.flag_widget)
-        self.flag_widget.itemChanged.connect(self.setDirty)
-
+            self.loadFlags({k: False for k in config["flags"]})  # todo 没看太懂，要干什么
+        self.flag_dock.setWidget(self.flag_widget)  # flag_dock 中会显示 flag_widget，也就是显示一个列表。
+        self.flag_widget.itemChanged.connect(self.setDirty)  # 每当列表项的状态发生更改时，setDirty() 方法会被调用
+        # 2 多边形标签窗口
         self.labelList.itemSelectionChanged.connect(self.labelSelectionChanged)
         self.labelList.itemDoubleClicked.connect(self._edit_label)
-        self.labelList.itemChanged.connect(self.labelItemChanged)
+        self.labelList.itemChanged.connect(self.labelItemChanged)  # 当项的文本或其他可编辑的属性发生变化时会触发。因为继承了QListWidgetItem的特性。
         self.labelList.itemDropped.connect(self.labelOrderChanged)
         self.shape_dock = QtWidgets.QDockWidget(self.tr("Polygon Labels"), self)
         self.shape_dock.setObjectName("Labels")
         self.shape_dock.setWidget(self.labelList)
-
+        # 3 标签列表窗口
         self.uniqLabelList = UniqueLabelQListWidget()
         self.uniqLabelList.setToolTip(
             self.tr(
@@ -142,7 +158,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.label_dock = QtWidgets.QDockWidget(self.tr("Label List"), self)
         self.label_dock.setObjectName("Label List")
         self.label_dock.setWidget(self.uniqLabelList)
-
+        # 4 文件列表窗口
         self.fileSearch = QtWidgets.QLineEdit()
         self.fileSearch.setPlaceholderText(self.tr("Search Filename"))
         self.fileSearch.textChanged.connect(self.fileSearchChanged)
@@ -158,55 +174,55 @@ class MainWindow(QtWidgets.QMainWindow):
         fileListWidget = QtWidgets.QWidget()
         fileListWidget.setLayout(fileListLayout)
         self.file_dock.setWidget(fileListWidget)
+        # 5 图像窗口，用来标注
+        self.zoomWidget = ZoomWidget()  # 用于缩放
+        self.setAcceptDrops(True)  # 启用窗口的拖放功能，支持直接拖动图片文件到窗口。
 
-        self.zoomWidget = ZoomWidget()
-        self.setAcceptDrops(True)
-
-        self.canvas = self.labelList.canvas = Canvas(
-            epsilon=self._config["epsilon"],
-            double_click=self._config["canvas"]["double_click"],
-            num_backups=self._config["canvas"]["num_backups"],
-            crosshair=self._config["canvas"]["crosshair"],
+        self.canvas = self.labelList.canvas = Canvas(  # self.labelList.canvas = self.canvas 表示 labelList 也可以访问 canvas。
+            epsilon=self._config["epsilon"],  # 用于平滑绘制的参数（如减少锯齿）。
+            double_click=self._config["canvas"]["double_click"],  # 否启用双击完成绘制
+            num_backups=self._config["canvas"]["num_backups"],  # 撤销的历史记录数量。
+            crosshair=self._config["canvas"]["crosshair"],  # 是否显示十字准线，用于辅助对齐。
         )
-        self.canvas.zoomRequest.connect(self.zoomRequest)
+        self.canvas.zoomRequest.connect(self.zoomRequest)  # 当用户滚动鼠标滚轮或点击缩放按钮时，执行 zoomRequest 进行缩放。
         self.canvas.mouseMoved.connect(
             lambda pos: self.status(f"Mouse is at: x={pos.x()}, y={pos.y()}")
-        )
+        )  # 当鼠标在 Canvas 上移动时，获取当前坐标 (x, y)，并显示在状态栏。
 
-        scrollArea = QtWidgets.QScrollArea()
-        scrollArea.setWidget(self.canvas)
-        scrollArea.setWidgetResizable(True)
+        scrollArea = QtWidgets.QScrollArea()  # 滚动区域（QScrollArea）用于在画布很大时滚动查看。
+        scrollArea.setWidget(self.canvas)  # 将 Canvas 放入滚动区域。
+        scrollArea.setWidgetResizable(True)  # 允许画布自适应缩放。
         self.scrollBars = {
             Qt.Vertical: scrollArea.verticalScrollBar(),
             Qt.Horizontal: scrollArea.horizontalScrollBar(),
-        }
-        self.canvas.scrollRequest.connect(self.scrollRequest)
+        }  # 获取滚动条对象，用于控制水平/垂直滚动。
+        self.canvas.scrollRequest.connect(self.scrollRequest)  # 当用户滚动鼠标滚轮时，触发 scrollRequest，调整视图位置。
 
-        self.canvas.newShape.connect(self.newShape)
-        self.canvas.shapeMoved.connect(self.setDirty)
-        self.canvas.selectionChanged.connect(self.shapeSelectionChanged)
-        self.canvas.drawingPolygon.connect(self.toggleDrawingSensitive)
+        self.canvas.newShape.connect(self.newShape)  # 当用户完成绘制一个新形状时，触发 newShape 方法。
+        self.canvas.shapeMoved.connect(self.setDirty)  # 当用户拖动/移动一个标注时，触发 setDirty 方法。标记文件已经修改。
+        self.canvas.selectionChanged.connect(self.shapeSelectionChanged)  # 当用户选中/取消选中某个标注时，触发 shapeSelectionChanged。更新 UI（如高亮选中的标签）
+        self.canvas.drawingPolygon.connect(self.toggleDrawingSensitive) # 当用户正在绘制多边形时，触发 toggleDrawingSensitive。可能会禁用某些 UI 按钮，避免误操作。
 
-        self.setCentralWidget(scrollArea)
-
+        self.setCentralWidget(scrollArea)  # 将 scrollArea 作为主窗口的中央组件。让 Canvas 画布成为主显示区域。
+        # 6 根据 self._config 的设置，控制 LabelMe 界面中的 4 个 Dock 窗口的行为。
         features = QtWidgets.QDockWidget.DockWidgetFeatures()
         for dock in ["flag_dock", "label_dock", "shape_dock", "file_dock"]:
-            if self._config[dock]["closable"]:
+            if self._config[dock]["closable"]:  # 是否可关闭（closable
                 features = features | QtWidgets.QDockWidget.DockWidgetClosable
-            if self._config[dock]["floatable"]:
+            if self._config[dock]["floatable"]:  # 是否可浮动（floatable）
                 features = features | QtWidgets.QDockWidget.DockWidgetFloatable
-            if self._config[dock]["movable"]:
+            if self._config[dock]["movable"]:  # 是否可移动（movable）
                 features = features | QtWidgets.QDockWidget.DockWidgetMovable
             getattr(self, dock).setFeatures(features)
-            if self._config[dock]["show"] is False:
+            if self._config[dock]["show"] is False:  # 是否默认显示（show）
                 getattr(self, dock).setVisible(False)
 
-        self.addDockWidget(Qt.RightDockWidgetArea, self.flag_dock)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.flag_dock)  # 将窗口放置在主窗口的右侧
         self.addDockWidget(Qt.RightDockWidgetArea, self.label_dock)
         self.addDockWidget(Qt.RightDockWidgetArea, self.shape_dock)
         self.addDockWidget(Qt.RightDockWidgetArea, self.file_dock)
 
-        # Actions
+        # Actions 文件 225~323
         action = functools.partial(utils.newAction, self)
         shortcuts = self._config["shortcuts"]
         quit = action(
@@ -306,6 +322,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tr("Close current file"),
         )
 
+        # 编辑 326~483
         toggle_keep_prev_mode = action(
             self.tr("Keep Previous Annotation"),
             self.toggleKeepPrevMode,
@@ -464,7 +481,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tr("Undo last add and edit of shape"),
             enabled=False,
         )
-
+        # 视图
         hideAll = action(
             self.tr("&Hide\nPolygons"),
             functools.partial(self.togglePolygons, False),
@@ -489,15 +506,15 @@ class MainWindow(QtWidgets.QMainWindow):
             tip=self.tr("Toggle all polygons"),
             enabled=False,
         )
-
+        # 帮助
         help = action(
             self.tr("&Tutorial"),
             self.tutorial,
             icon="help",
             tip=self.tr("Show tutorial page"),
         )
-
-        zoom = QtWidgets.QWidgetAction(self)
+        # 视图其他部分 516 ~ 635
+        zoom = QtWidgets.QWidgetAction(self)  # todo
         zoomBoxLayout = QtWidgets.QVBoxLayout()
         zoomLabel = QtWidgets.QLabel(self.tr("Zoom"))
         zoomLabel.setAlignment(Qt.AlignCenter)
@@ -586,7 +603,7 @@ class MainWindow(QtWidgets.QMainWindow):
             zoomOrg,
             fitWindow,
             fitWidth,
-        )
+        )  # todo
         self.zoomMode = self.FIT_WINDOW
         fitWindow.setChecked(Qt.Checked)
         self.scalers = {
@@ -603,7 +620,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "edit",
             self.tr("Modify the label of the selected polygon"),
             enabled=False,
-        )
+        )  # 编辑菜单中的编辑标签。
 
         fill_drawing = action(
             self.tr("Fill Drawing Polygon"),
@@ -617,7 +634,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self._config["canvas"]["fill_drawing"]:
             fill_drawing.trigger()
 
-        # Label list context menu.
+        # Label list context menu.  在多边形标签中，增加右击显示，编辑和删除的按钮。
         labelMenu = QtWidgets.QMenu()
         utils.addActions(labelMenu, (edit, delete))
         self.labelList.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -698,7 +715,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 undo,
                 undoLastPoint,
                 removePoint,
-            ),
+            ),  # 画布上右击的那些菜单。
             onLoadActive=(
                 close,
                 createMode,
@@ -715,15 +732,15 @@ class MainWindow(QtWidgets.QMainWindow):
             onShapesPresent=(saveAs, hideAll, showAll, toggleAll),
         )
 
-        self.canvas.vertexSelected.connect(self.actions.removePoint.setEnabled)
+        self.canvas.vertexSelected.connect(self.actions.removePoint.setEnabled)  # todo 没看太懂
 
         self.menus = utils.struct(
-            file=self.menu(self.tr("&File")),
+            file=self.menu(self.tr("&File")),  # self.tr("&File") 是用来创建国际化字符串的（翻译字符串），其中 & 作为快捷键指示符
             edit=self.menu(self.tr("&Edit")),
             view=self.menu(self.tr("&View")),
             help=self.menu(self.tr("&Help")),
-            recentFiles=QtWidgets.QMenu(self.tr("Open &Recent")),
-            labelList=labelMenu,
+            recentFiles=QtWidgets.QMenu(self.tr("Open &Recent")),  # 最近打开，非动作，所以单独搞出来了。
+            labelList=labelMenu,  # 多边形标签上右击的那个窗口，有删除和编辑。
         )
 
         utils.addActions(
@@ -741,7 +758,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 saveWithImageData,
                 close,
                 deleteFile,
-                None,
+                None,  # 这就是分割符，designer之前遇到过。
                 quit,
             ),
         )
@@ -772,18 +789,18 @@ class MainWindow(QtWidgets.QMainWindow):
             ),
         )
 
-        self.menus.file.aboutToShow.connect(self.updateFileMenu)
+        self.menus.file.aboutToShow.connect(self.updateFileMenu)  # todo
 
         # Custom context menu for the canvas widget:
-        utils.addActions(self.canvas.menus[0], self.actions.menu)
+        utils.addActions(self.canvas.menus[0], self.actions.menu)  # 画布上右击出现的窗口
         utils.addActions(
             self.canvas.menus[1],
             (
                 action("&Copy here", self.copyShape),
                 action("&Move here", self.moveShape),
             ),
-        )
-
+        )  # 在画布上，右击选中框后，移动到另外一个位置就出现这个菜单。
+        # todo tools上ai那个框。猜测的。803~848
         selectAiModel = QtWidgets.QWidgetAction(self)
         selectAiModel.setDefaultWidget(QtWidgets.QWidget())
         selectAiModel.defaultWidget().setLayout(QtWidgets.QVBoxLayout())
@@ -829,7 +846,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         ai_prompt_action = QtWidgets.QWidgetAction(self)
         ai_prompt_action.setDefaultWidget(self._ai_prompt_widget)
-
+        # 主界面左侧工具栏。有ai那些。
         self.tools = self.toolbar("Tools")
         self.actions.tool = (
             open_,
@@ -854,7 +871,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ai_prompt_action,
         )
 
-        self.statusBar().showMessage(str(self.tr("%s started.")) % __appname__)
+        self.statusBar().showMessage(str(self.tr("%s started.")) % __appname__)  # todo不是太明白。
         self.statusBar().show()
 
         if output_file is not None and self._config["auto_save"]:
@@ -907,20 +924,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.updateFileMenu()
         # Since loading the file may take some time,
         # make sure it runs in the background.
-        if self.filename is not None:
+        if self.filename is not None:  # 文件名不为空，放到事件队列中，在后台加载，不会阻塞主线程。
             self.queueEvent(functools.partial(self.loadFile, self.filename))
 
         # Callbacks:
-        self.zoomWidget.valueChanged.connect(self.paintCanvas)
+        self.zoomWidget.valueChanged.connect(self.paintCanvas)  # 将缩放控件 (zoomWidget) 的 valueChanged 信号连接到 self.paintCanvas 方法。当用户调整缩放时，paintCanvas 方法会被调用以更新画布。
 
-        self.populateModeActions()
+        self.populateModeActions()  # 编辑菜单在这里加了。
 
         # self.firstStart = True
         # if self.firstStart:
         #    QWhatsThis.enterWhatsThisMode()
 
-    def menu(self, title, actions=None):
-        menu = self.menuBar().addMenu(title)
+    def menu(self, title, actions=None):  # 返回的是一个 QMenu 对象，它代表一个菜单，其中可以添加多个菜单项（如 "Open"、"Save"）
+        menu = self.menuBar().addMenu(title)  # 创建一个菜单
         if actions:
             utils.addActions(menu, actions)
         return menu
@@ -1419,12 +1436,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.loadShapes(s)
 
     def loadFlags(self, flags):
-        self.flag_widget.clear()
+        self.flag_widget.clear()  # 在加载新的标志项之前，先清空原有的内容。
         for key, flag in flags.items():
             item = QtWidgets.QListWidgetItem(key)
-            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-            item.setCheckState(Qt.Checked if flag else Qt.Unchecked)
-            self.flag_widget.addItem(item)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)  # Qt.ItemIsUserCheckable 是一个常量，表示该项是可以被用户勾选的（即可以显示复选框）
+            item.setCheckState(Qt.Checked if flag else Qt.Unchecked)  # 设置 QListWidgetItem 的复选框状态。
+            self.flag_widget.addItem(item)  # 将 item（QListWidgetItem）添加到 QListWidget 中。这会将新创建的项显示在列表中。
 
     def saveLabels(self, filename):
         lf = LabelFile()

@@ -44,14 +44,14 @@ class Canvas(QtWidgets.QWidget):
     _fill_drawing = False
 
     def __init__(self, *args, **kwargs):
-        self.epsilon = kwargs.pop("epsilon", 10.0)
+        self.epsilon = kwargs.pop("epsilon", 10.0)  # 用于控制某些形状的 精度 或 容差 value = dict.pop(key, default)
         self.double_click = kwargs.pop("double_click", "close")
         if self.double_click not in [None, "close"]:
             raise ValueError(
                 "Unexpected value for double_click event: {}".format(self.double_click)
             )
-        self.num_backups = kwargs.pop("num_backups", 10)
-        self._crosshair = kwargs.pop(
+        self.num_backups = kwargs.pop("num_backups", 10)  # num_backups 表示形状的最大备份数，用于 撤销操作。
+        self._crosshair = kwargs.pop(  # _crosshair 控制 鼠标十字准星 是否在不同模式下启用
             "crosshair",
             {
                 "polygon": False,
@@ -78,15 +78,15 @@ class Canvas(QtWidgets.QWidget):
         #   - createMode == 'line': the line
         #   - createMode == 'point': the point
         self.line = Shape()
-        self.prevPoint = QtCore.QPoint()
-        self.prevMovePoint = QtCore.QPoint()
-        self.offsets = QtCore.QPoint(), QtCore.QPoint()
-        self.scale = 1.0
-        self.pixmap = QtGui.QPixmap()
-        self.visible = {}
-        self._hideBackround = False
-        self.hideBackround = False
-        self.hShape = None
+        self.prevPoint = QtCore.QPoint()  # 记录上一次鼠标点击位置。
+        self.prevMovePoint = QtCore.QPoint()  # 记录上一次鼠标移动位置。
+        self.offsets = QtCore.QPoint(), QtCore.QPoint()  # 可能用于 拖动形状时的偏移量。
+        self.scale = 1.0  # 控制画布缩放比例，默认为 1.0（原始大小）。
+        self.pixmap = QtGui.QPixmap()  # 用于存储背景图像，例如加载一张图片进行标注
+        self.visible = {}  # 可能存储哪些元素可见
+        self._hideBackround = False  # 控制 是否隐藏背景
+        self.hideBackround = False  # 控制 是否隐藏背景
+        self.hShape = None  # 高亮状态
         self.prevhShape = None
         self.hVertex = None
         self.prevhVertex = None
@@ -1017,8 +1017,8 @@ def _update_shape_with_sam(
             f"createMode must be 'ai_polygon' or 'ai_mask', not {createMode}"
         )
 
-    response: osam.types.GenerateResponse = osam.apis.generate(
-        osam.types.GenerateRequest(
+    response: osam.types.GenerateResponse = osam.apis.generate(  # 调用 osam.apis.generate() 进行 AI 形状生成
+        osam.types.GenerateRequest(  # 这个类用于构造 API 请求　
             model=model_name,
             image_embedding=image_embedding,
             prompt=osam.types.Prompt(
@@ -1027,7 +1027,7 @@ def _update_shape_with_sam(
             ),
         )
     )
-    if not response.annotations:
+    if not response.annotations:  # 可能是列表，包含{mask:, bounding_box}
         logger.warning("No annotations returned by model {!r}", model_name)
         return
 
@@ -1054,11 +1054,11 @@ def _update_shape_with_sam(
     elif createMode == "ai_polygon":
         points = polygon_from_mask.compute_polygon_from_mask(
             mask=response.annotations[0].mask
-        )
-        if len(points) < 2:
+        )  # 从掩码生成多边形，因为sam生成的就是掩码。
+        if len(points) < 2:  # 不构成封闭区域。
             return
         shape.setShapeRefined(
             shape_type="polygon",
             points=[QtCore.QPointF(point[0], point[1]) for point in points],
             point_labels=[1] * len(points),
-        )
+        )  # 它用于将当前形状更新为多边形（polygon），并将相应的点坐标和标签赋给它。

@@ -82,7 +82,7 @@ class Shape(object):
         return QtCore.QPointF(point.x() * self.scale, point.y() * self.scale)
 
     def setShapeRefined(self, shape_type, points, point_labels, mask=None):
-        self._shape_raw = (self.shape_type, self.points, self.point_labels)
+        self._shape_raw = (self.shape_type, self.points, self.point_labels)  # 备份当前形状的状态。
         self.shape_type = shape_type
         self.points = points
         self.point_labels = point_labels

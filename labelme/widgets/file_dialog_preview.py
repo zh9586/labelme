@@ -31,7 +31,7 @@ class ScrollAreaPreview(QtWidgets.QScrollArea):
         self.label.clear()
 
 
-class FileDialogPreview(QtWidgets.QFileDialog):
+class FileDialogPreview(QtWidgets.QFileDialog):  # 它允许用户通过图形界面浏览文件系统并选择文件或目录
     def __init__(self, *args, **kwargs):
         super(FileDialogPreview, self).__init__(*args, **kwargs)
         self.setOption(self.DontUseNativeDialog, True)

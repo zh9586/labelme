@@ -2167,7 +2167,7 @@ class MainWindow(QtWidgets.QMainWindow):
             defaultOpenDirPath = osp.dirname(self.filename) if self.filename else "."
 
         targetDirPath = str(
-            QtWidgets.QFileDialog.getExistingDirectory(
+            QtWidgets.QFileDialog.getExistingDirectory(  # 相当于又写了一个。专门打开文件夹的。
                 self,
                 self.tr("%s - Open Directory") % __appname__,
                 defaultOpenDirPath,

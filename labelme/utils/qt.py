@@ -66,8 +66,8 @@ def addActions(widget, actions):
             widget.addAction(action)
 
 
-def labelValidator():
-    return QtGui.QRegExpValidator(QtCore.QRegExp(r"^[^ \t].+"), None)
+def labelValidator():  # 确保用户输入的字符串不以空格或制表符开头，并且至少有一个字符。
+    return QtGui.QRegExpValidator(QtCore.QRegExp(r"^[^ \t].+"), None)  # ^: 匹配字符串的开始。[^ \t]: 这个部分意思是匹配任何不是空格（' '）或制表符（\t）的字符。.+: 匹配至少一个字符
 
 
 class struct(object):
@@ -79,7 +79,7 @@ def distance(p):
     return sqrt(p.x() * p.x() + p.y() * p.y())
 
 
-def distancetoline(point, line):
+def distancetoline(point, line):  # 计算一个点到一条线段的距离
     p1, p2 = line
     p1 = np.array([p1.x(), p1.y()])
     p2 = np.array([p2.x(), p2.y()])
@@ -93,6 +93,6 @@ def distancetoline(point, line):
     return np.linalg.norm(np.cross(p2 - p1, p1 - p3)) / np.linalg.norm(p2 - p1)
 
 
-def fmtShortcut(text):
-    mod, key = text.split("+", 1)
-    return "<b>%s</b>+<b>%s</b>" % (mod, key)
+def fmtShortcut(text):  # 用于格式化快捷键文本的函数
+    mod, key = text.split("+", 1)  # 将文本按 "+" 分割成两部分，修饰符和键
+    return "<b>%s</b>+<b>%s</b>" % (mod, key)  # 返回加粗的 HTML 格式化文本

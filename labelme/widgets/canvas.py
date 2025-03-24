@@ -1036,7 +1036,7 @@ def _update_shape_with_sam(
         x1: int
         y2: int
         x2: int
-        if response.annotations[0].bounding_box is None:
+        if response.annotations[0].bounding_box is None:  # 拿到边界框，有了直接拿，没得用掩码算。
             y1, x1, y2, x2 = imgviz.instances.mask_to_bbox(
                 [response.annotations[0].mask]
             )[0].astype(int)

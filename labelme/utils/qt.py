@@ -23,16 +23,16 @@ def newButton(text, icon=None, slot=None):
     return b
 
 
-def newAction(
-    parent,
-    text,
-    slot=None,
-    shortcut=None,
-    icon=None,
-    tip=None,
-    checkable=False,
-    enabled=True,
-    checked=False,
+def newAction(  # QAction 被添加到菜单栏或工具栏，那么鼠标点击它时，会自动触发 triggered 信号。action.trigger()  # 这相当于用户点击了这个 action
+    parent,  # QAction 需要一个父对象，一般是 QMainWindow、QMenu、QToolBar 等
+    text,  # 按钮的文本，比如 "Open File"
+    slot=None,  # 绑定的槽函数（点击时触发的操作）
+    shortcut=None,  # 快捷键，可以是 'Ctrl+O' 这样的字符串
+    icon=None,  # 按钮图标，通常是资源文件路径
+    tip=None,  # # 鼠标悬停提示
+    checkable=False,  # # 是否是可勾选的 QAction
+    enabled=True,  # 是否默认启用
+    checked=False,  # 如果是可勾选的 QAction，是否默认勾选
 ):
     """Create a new action and assign callbacks, shortcuts, etc."""
     a = QtWidgets.QAction(text, parent)
@@ -59,11 +59,11 @@ def newAction(
 def addActions(widget, actions):
     for action in actions:
         if action is None:
-            widget.addSeparator()
+            widget.addSeparator()  # 增加分隔符
         elif isinstance(action, QtWidgets.QMenu):
-            widget.addMenu(action)
+            widget.addMenu(action)  # 菜单的action
         else:
-            widget.addAction(action)
+            widget.addAction(action)  # 都是自己的方法去加。
 
 
 def labelValidator():  # 确保用户输入的字符串不以空格或制表符开头，并且至少有一个字符。
@@ -72,7 +72,7 @@ def labelValidator():  # 确保用户输入的字符串不以空格或制表符�
 
 class struct(object):
     def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
+        self.__dict__.update(kwargs)  # 是 Python 每个对象 内部的 字典，它存储了该对象的所有 实例属性。
 
 
 def distance(p):

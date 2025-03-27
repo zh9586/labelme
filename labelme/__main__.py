@@ -218,9 +218,9 @@ def main():
         sys.exit(0)
 
     with logger.catch(), contextlib.redirect_stderr(new_target=_LoggerIO()):
-        win.show()
+        win.show()  # 只要 QMainWindow 被创建并调用 show()，QApplication 会自动管理它。
         win.raise_()  # 将窗口放到顶层。
-        sys.exit(app.exec_())
+        sys.exit(app.exec_())  # QApplication 和 QMainWindow 会自动建立关系，但它们的关系是通过 事件循环（Event Loop） 和 父子对象机制（QObject Parent-Child） 维持的，而不是某种显式的绑定。
 
 
 # this main block is required to generate executable by pyinstaller

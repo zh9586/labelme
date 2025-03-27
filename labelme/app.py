@@ -298,7 +298,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         saveAuto = action(
             text=self.tr("Save &Automatically"),
-            slot=lambda x: self.actions.saveAuto.setChecked(x),
+            slot=lambda x: self.actions.saveAuto.setChecked(x),  # todo 自动保存
             icon="save",
             tip=self.tr("Save automatically"),
             checkable=True,
@@ -406,7 +406,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tr("Start drawing ai_mask. Ctrl+LeftClick ends creation."),
             enabled=False,
         )
-        createAiMaskMode.changed.connect(
+        createAiMaskMode.changed.connect(  # todo 细看
             lambda: self.canvas.initializeAiModel(
                 model_name=self._selectAiModelComboBox.itemData(
                     self._selectAiModelComboBox.currentIndex()
@@ -458,7 +458,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         undoLastPoint = action(
             self.tr("Undo last point"),
-            self.canvas.undoLastPoint,
+            self.canvas.undoLastPoint,  # todo 画布本身的。
             shortcuts["undo_last_point"],
             "undo",
             self.tr("Undo last drawn point"),
@@ -632,7 +632,7 @@ class MainWindow(QtWidgets.QMainWindow):
             enabled=True,
         )
         if self._config["canvas"]["fill_drawing"]:
-            fill_drawing.trigger()
+            fill_drawing.trigger()  # 触发action
 
         # Label list context menu.  在多边形标签中，增加右击显示，编辑和删除的按钮。
         labelMenu = QtWidgets.QMenu()
@@ -682,7 +682,7 @@ class MainWindow(QtWidgets.QMainWindow):
             fileMenuActions=(open_, opendir, save, saveAs, close, quit),
             tool=(),
             # XXX: need to add some actions here to activate the shortcut
-            editMenu=(
+            editMenu=(  # 编辑菜单，但是不是全部。
                 edit,
                 duplicate,
                 copy,
@@ -848,7 +848,7 @@ class MainWindow(QtWidgets.QMainWindow):
         ai_prompt_action.setDefaultWidget(self._ai_prompt_widget)
         # 主界面左侧工具栏。有ai那些。
         self.tools = self.toolbar("Tools")
-        self.actions.tool = (
+        self.actions.tool = (  # 给self.actions对象，添加key和value(整个元组)
             open_,
             opendir,
             openPrevImg,
@@ -871,7 +871,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ai_prompt_action,
         )
 
-        self.statusBar().showMessage(str(self.tr("%s started.")) % __appname__)  # todo不是太明白。
+        self.statusBar().showMessage(str(self.tr("%s started.")) % __appname__)  # 状态栏的显示(最下面),刚打开敞口就显示labme started. 鼠标不移动上去，一直显示。
         self.statusBar().show()
 
         if output_file is not None and self._config["auto_save"]:
@@ -925,7 +925,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Since loading the file may take some time,
         # make sure it runs in the background.
         if self.filename is not None:  # 文件名不为空，放到事件队列中，在后台加载，不会阻塞主线程。
-            self.queueEvent(functools.partial(self.loadFile, self.filename))
+            self.queueEvent(functools.partial(self.loadFile, self.filename))  # functools.partial 是 Python 标准库中的一个工具函数，允许你“冻结”一个函数的一部分参数，并返回一个新的函数。这个新函数可以通过不需要重复传递这些已经冻结的参数来调用。
 
         # Callbacks:
         self.zoomWidget.valueChanged.connect(self.paintCanvas)  # 将缩放控件 (zoomWidget) 的 valueChanged 信号连接到 self.paintCanvas 方法。当用户调整缩放时，paintCanvas 方法会被调用以更新画布。
@@ -937,33 +937,33 @@ class MainWindow(QtWidgets.QMainWindow):
         #    QWhatsThis.enterWhatsThisMode()
 
     def menu(self, title, actions=None):  # 返回的是一个 QMenu 对象，它代表一个菜单，其中可以添加多个菜单项（如 "Open"、"Save"）
-        menu = self.menuBar().addMenu(title)  # 创建一个菜单
+        menu = self.menuBar().addMenu(title)  # 创建一个菜单, self.menuBar() 只有 QMainWindow 及其子类有。其实算不上特有，也可以手动给widget加
         if actions:
-            utils.addActions(menu, actions)
+            utils.addActions(menu, actions)  # 菜单 (QMenu) 本质上只是一个标题, action 主要用于绑定事件（点击后执行某些操作）
         return menu
 
-    def toolbar(self, title, actions=None):
+    def toolbar(self, title, actions=None):  # 用于添加工具栏
         toolbar = ToolBar(title)
         toolbar.setObjectName("%sToolBar" % title)
-        # toolbar.setOrientation(Qt.Vertical)
-        toolbar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        # toolbar.setOrientation(Qt.Horizontal)  todo 不知道为什么无效
+        toolbar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)  # 默认情况下，按钮只有图标或文本，这种样式将会显示图标和文本，文本位于图标的下方。
         if actions:
-            utils.addActions(toolbar, actions)
-        self.addToolBar(Qt.TopToolBarArea, toolbar)
+            utils.addActions(toolbar, actions)  # 每个 QAction 对象通常与一个按钮绑定，触发该按钮时，会执行与之相关的事件。
+        self.addToolBar(Qt.TopToolBarArea, toolbar)  # 枚举值，还有其他位置如 Qt.BottomToolBarArea
         return toolbar
 
     # Support Functions
 
     def noShapes(self):
-        return not len(self.labelList)
+        return not len(self.labelList)  # 判断labellist是不是空的。就是有没有标签
 
-    def populateModeActions(self):
-        tool, menu = self.actions.tool, self.actions.menu
-        self.tools.clear()
+    def populateModeActions(self):  # 左侧工具栏；画布右击；编辑菜单；增加action
+        tool, menu = self.actions.tool, self.actions.menu  # self.action.tool左侧哪些action的元组；
+        self.tools.clear()  # self.tools是那个工具栏
         utils.addActions(self.tools, tool)
         self.canvas.menus[0].clear()
-        utils.addActions(self.canvas.menus[0], menu)
-        self.menus.edit.clear()
+        utils.addActions(self.canvas.menus[0], menu)  # 画布上菜单添加menu
+        self.menus.edit.clear()  # self.menus也是一个对象。edit编辑按钮
         actions = (
             self.actions.createMode,
             self.actions.createRectangleMode,
@@ -1023,11 +1023,11 @@ class MainWindow(QtWidgets.QMainWindow):
         for action in self.actions.onLoadActive:
             action.setEnabled(value)
 
-    def queueEvent(self, function):
-        QtCore.QTimer.singleShot(0, function)
+    def queueEvent(self, function):  # 在 Qt 中，所有的事件（比如鼠标点击、键盘输入、定时器等）都会被放入事件队列。Qt 的事件循环会按照队列中的顺序依次处理事件。第一个参数 0 表示延迟 0 毫秒（也就是立刻），但是不插队，必须等前面事件执行完，再执行。
+        QtCore.QTimer.singleShot(0, function)  # QtCore.QTimer.singleShot 是 PyQt5 中一个用于定时触发操作的静态方法。它会在指定的毫秒数后调用指定的函数。
 
     def status(self, message, delay=5000):
-        self.statusBar().showMessage(message, delay)
+        self.statusBar().showMessage(message, delay)  # 坐标信息，还有就是lable加载成功哪些。主要用于临时通知用户某些信息，例如 保存成功、加载完成、错误警告 等。设定显示时间，之后会自动清除，默认 5 秒
 
     def _submit_ai_prompt(self, _) -> None:
         texts = self._ai_prompt_widget.get_text_prompt().split(",")
@@ -1050,10 +1050,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 dtype=np.float32,
             )
             boxes = np.r_[boxes, [box]]
-            scores = np.r_[scores, [1.01]]
+            scores = np.r_[scores, [1.01]]  # 这里的1.01是为了方便区分ai预测的和人工标注的。
             labels = np.r_[labels, [texts.index(shape.label)]]
 
-        boxes, scores, labels = bbox_from_text.nms_bboxes(
+        boxes, scores, labels = bbox_from_text.nms_bboxes(  # 去除人工标注和ai预测的重复框。
             boxes=boxes,
             scores=scores,
             labels=labels,
@@ -1067,14 +1067,14 @@ class MainWindow(QtWidgets.QMainWindow):
         scores = scores[keep]
         labels = labels[keep]
 
-        shape_dicts: list[dict] = bbox_from_text.get_shapes_from_bboxes(
+        shape_dicts: list[dict] = bbox_from_text.get_shapes_from_bboxes(  # 将 boxes 转换成 Shape, 为了显示在画布上。猜的。
             boxes=boxes,
             scores=scores,
             labels=labels,
             texts=texts,
         )
 
-        shapes: list[Shape] = []
+        shapes: list[Shape] = []  # 创建shape并加入到shapes为了显示。
         for shape_dict in shape_dicts:
             shape = Shape(
                 label=shape_dict["label"],
@@ -1085,9 +1085,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 shape.addPoint(QtCore.QPointF(*point))
             shapes.append(shape)
 
-        self.canvas.storeShapes()
-        self.loadShapes(shapes, replace=False)
-        self.setDirty()
+        self.canvas.storeShapes()  # 先保存当前 Shape 以便撤销操作。
+        self.loadShapes(shapes, replace=False)  # 把新检测到的 Shape 加入画布，replace=False 说明不清除已有 Shape，而是追加进去。
+        self.setDirty()  # 标记文件已修改，启用“保存”按钮。
 
     def resetState(self):
         self.labelList.clear()
@@ -1101,15 +1101,15 @@ class MainWindow(QtWidgets.QMainWindow):
     def currentItem(self):
         items = self.labelList.selectedItems()
         if items:
-            return items[0]
+            return items[0]  # 按照 QModelIndex 在数据模型中的顺序排列，而不是按选择时间排列。在这里只能单选，它不是前面的对号，而是鼠标的选择
         return None
 
     def addRecentFile(self, filename):
         if filename in self.recentFiles:
-            self.recentFiles.remove(filename)
+            self.recentFiles.remove(filename)  # 去除掉，之前重复的。其实就是为了把整个文件变成最新的，最近打开。
         elif len(self.recentFiles) >= self.maxRecent:
-            self.recentFiles.pop()
-        self.recentFiles.insert(0, filename)
+            self.recentFiles.pop()  # 维护不多于self.maxRecent数量的最近打开文件列表；多了就把最旧的删掉。
+        self.recentFiles.insert(0, filename)  # 加入打开的。
 
     # Callbacks
 
@@ -1128,7 +1128,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         In the middle of drawing, toggling between modes should be disabled.
         """
-        self.actions.editMode.setEnabled(not drawing)
+        self.actions.editMode.setEnabled(not drawing)  # Qt 中的 QAction 都有 setEnabled() 方法，可以用来启用或禁用该 QAction（比如按钮、菜单项等）。
         self.actions.undoLastPoint.setEnabled(drawing)
         self.actions.undo.setEnabled(not drawing)
         self.actions.delete.setEnabled(not drawing)
@@ -2054,7 +2054,7 @@ class MainWindow(QtWidgets.QMainWindow):
         return label_file
 
     def deleteFile(self):
-        mb = QtWidgets.QMessageBox
+        mb = QtWidgets.QMessageBox  # 删除文件时间的弹框。
         msg = self.tr(
             "You are about to permanently delete this label file, " "proceed anyway?"
         )

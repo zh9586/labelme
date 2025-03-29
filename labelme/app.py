@@ -903,7 +903,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.filename = filename
 
-        if config["file_search"]:
+        if config["file_search"]:  # 是不是要搜索什么字段。需要注意的是，这和占位符不一样，可以删除或修改。
             self.fileSearch.setText(config["file_search"])
             self.fileSearchChanged()
 
@@ -1167,7 +1167,7 @@ class MainWindow(QtWidgets.QMainWindow):
         menu = self.menus.recentFiles
         menu.clear()
         files = [f for f in self.recentFiles if f != current and exists(f)]
-        for i, f in enumerate(files):
+        for i, f in enumerate(files):  # 创建了很多按钮和图标，就是最近打开那里。
             icon = utils.newIcon("labels")
             action = QtWidgets.QAction(
                 icon, "&%d %s" % (i + 1, QtCore.QFileInfo(f).fileName()), self
@@ -1175,10 +1175,10 @@ class MainWindow(QtWidgets.QMainWindow):
             action.triggered.connect(functools.partial(self.loadRecent, f))
             menu.addAction(action)
 
-    def popLabelListMenu(self, point):
-        self.menus.labelList.exec_(self.labelList.mapToGlobal(point))
+    def popLabelListMenu(self, point):  # QWidget.mapToGlobal()，它会把 point 转换为整个屏幕上的坐标，这样弹出的菜单就会正确出现在鼠标点击的位置。很多都会影响，转化是必要的。
+        self.menus.labelList.exec_(self.labelList.mapToGlobal(point))  # exec_()会显示菜单，并让程序等待用户的操作（比如点击菜单项）。直到用户选择一个选项或点击菜单外部，菜单才会关闭。
 
-    def validateLabel(self, label):
+    def validateLabel(self, label):  # 用于检查给定的 label 是否在 uniqLabelList 列表中
         # no validation
         if self._config["validate_label"] is None:
             return True
@@ -1296,36 +1296,36 @@ class MainWindow(QtWidgets.QMainWindow):
             load=False,
         )
 
-    def fileSelectionChanged(self):
-        items = self.fileListWidget.selectedItems()
+    def fileSelectionChanged(self):  # 在图像文件上，点那张图，就显示哪张图。
+        items = self.fileListWidget.selectedItems()  # 哪些文件被选中，这文件列表那个窗口。
         if not items:
             return
         item = items[0]
 
-        if not self.mayContinue():
+        if not self.mayContinue():  # 弹出窗口，用户点了取消。
             return
 
         currIndex = self.imageList.index(str(item.text()))
         if currIndex < len(self.imageList):
             filename = self.imageList[currIndex]
             if filename:
-                self.loadFile(filename)
+                self.loadFile(filename)  # 在画布上显示图像。
 
     # React to canvas signals.
-    def shapeSelectionChanged(self, selected_shapes):
+    def shapeSelectionChanged(self, selected_shapes):  # 在画布上选择那个标签，同步更新标签列表中的状态。
         self._noSelectionSlot = True
-        for shape in self.canvas.selectedShapes:
+        for shape in self.canvas.selectedShapes:  # 通过遍历 canvas.selectedShapes 中的每个形状，将 selected 属性设置为 False，取消当前选中的所有形状。
             shape.selected = False
-        self.labelList.clearSelection()
-        self.canvas.selectedShapes = selected_shapes
+        self.labelList.clearSelection()  # 通过遍历 canvas.selectedShapes 中的每个形状，将 selected 属性设置为 False，取消当前选中的所有形状。
+        self.canvas.selectedShapes = selected_shapes  # 将 selected_shapes 赋给 canvas.selectedShapes，并将每个形状的 selected 属性设置为 True，标记它们为选中。
         for shape in self.canvas.selectedShapes:
             shape.selected = True
             item = self.labelList.findItemByShape(shape)
-            self.labelList.selectItem(item)
-            self.labelList.scrollToItem(item)
-        self._noSelectionSlot = False
+            self.labelList.selectItem(item)  # 然后使用 selectItem(item) 选中该标签
+            self.labelList.scrollToItem(item)  # 并用 scrollToItem(item) 确保选中的标签在列表中可见。
+        self._noSelectionSlot = False  # 修改选中状态
         n_selected = len(selected_shapes)
-        self.actions.delete.setEnabled(n_selected)
+        self.actions.delete.setEnabled(n_selected)  # 根据当前选中的形状数量 n_selected，启用或禁用一些操作按钮（删除、复制、编辑等）
         self.actions.duplicate.setEnabled(n_selected)
         self.actions.copy.setEnabled(n_selected)
         self.actions.edit.setEnabled(n_selected)
@@ -1574,11 +1574,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self.canvas.undoLastLine()
             self.canvas.shapesBackups.pop()
 
-    def scrollRequest(self, delta, orientation):
+    def scrollRequest(self, delta, orientation):  # delta是滚轮的变化量，orientation是变化的方向，水平or竖直。
         units = -delta * 0.1  # natural scroll
         bar = self.scrollBars[orientation]
-        value = bar.value() + bar.singleStep() * units
-        self.setScroll(orientation, value)
+        value = bar.value() + bar.singleStep() * units  # delta 是正值表示向上或向右滚动，delta 是负值表示向下或向左滚动。乘以 -1 是为了使滚动方向符合预期（正值为向上或向右，负值为向下或向左）。0.1 是用来调整滚动敏感度的系数。这个系数可以根据实际需求进行调整。
+        self.setScroll(orientation, value)  # setScroll() 方法将更新滚动条的位置，以响应滚动请求
 
     def setScroll(self, orientation, value):
         self.scrollBars[orientation].setValue(int(value))
@@ -2089,7 +2089,7 @@ class MainWindow(QtWidgets.QMainWindow):
         label_file = self.getLabelFile()
         return osp.exists(label_file)
 
-    def mayContinue(self):
+    def mayContinue(self):   # 没有保存，切换下张图提示的窗口
         if not self.dirty:
             return True
         mb = QtWidgets.QMessageBox

@@ -223,11 +223,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.addDockWidget(Qt.RightDockWidgetArea, self.file_dock)
 
         # Actions 文件 225~323
-        action = functools.partial(utils.newAction, self)
+        action = functools.partial(utils.newAction, self)   # functools.partial 是 Python 标准库 functools 中的一个非常有用的函数，它的作用是：“固定函数的一部分参数，返回一个新的函数”。
         shortcuts = self._config["shortcuts"]
         quit = action(
             self.tr("&Quit"),
-            self.close,
+            self.close,  # 主窗口自带的
             shortcuts["quit"],
             "quit",
             self.tr("Quit application"),

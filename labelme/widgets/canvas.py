@@ -165,22 +165,22 @@ class Canvas(QtWidgets.QWidget):
 
     def storeShapes(self):
         shapesBackup = []
-        for shape in self.shapes:
+        for shape in self.shapes:  # 就是把shape拷贝了 一份
             shapesBackup.append(shape.copy())
-        if len(self.shapesBackups) > self.num_backups:
-            self.shapesBackups = self.shapesBackups[-self.num_backups - 1 :]
-        self.shapesBackups.append(shapesBackup)
+        if len(self.shapesBackups) > self.num_backups:  # 如果self.shapesBackups长度超了，就只取最后的self.num_backups + 1。
+            self.shapesBackups = self.shapesBackups[-self.num_backups - 1:]
+        self.shapesBackups.append(shapesBackup)  # 把复制的shapes放到self.shapesBackups，
 
     @property
-    def isShapeRestorable(self):
+    def isShapeRestorable(self):  # 判断能否撤销。
         # We save the state AFTER each edit (not before) so for an
         # edit to be undoable, we expect the CURRENT and the PREVIOUS state
         # to be in the undo stack.
-        if len(self.shapesBackups) < 2:
+        if len(self.shapesBackups) < 2:  # 要撤销一次，需要栈里至少有 “当前状态” 和 “上一个状态”
             return False
         return True
 
-    def restoreShape(self):
+    def restoreShape(self):  # 就是恢复前一次的shape
         # This does _part_ of the job of restoring shapes.
         # The complete process is also done in app.py::undoShapeEdit
         # and app.py::loadShapes and our own Canvas::loadShapes function.
@@ -190,33 +190,33 @@ class Canvas(QtWidgets.QWidget):
 
         # The application will eventually call Canvas.loadShapes which will
         # push this right back onto the stack.
-        shapesBackup = self.shapesBackups.pop()
-        self.shapes = shapesBackup
-        self.selectedShapes = []
+        shapesBackup = self.shapesBackups.pop()  # 之前的shape,当前的在前一次已经弹出了。
+        self.shapes = shapesBackup  # 把 shapes 恢复成这个版本
+        self.selectedShapes = []  # 清空当前选中
         for shape in self.shapes:
-            shape.selected = False
-        self.update()
+            shape.selected = False  # 所有 shape 取消选中
+        self.update()  # 更新画布
 
-    def enterEvent(self, ev):
+    def enterEvent(self, ev):  # 鼠标进入画布，改成指定光标
         self.overrideCursor(self._cursor)
 
     def leaveEvent(self, ev):
-        self.unHighlight()
-        self.restoreCursor()
+        self.unHighlight()  # 鼠标离开时取消高亮
+        self.restoreCursor()  # 恢复默认光标
 
     def focusOutEvent(self, ev):
-        self.restoreCursor()
+        self.restoreCursor()  # 画布失去焦点时恢复光标;当你点击某个 QWidget（比如画布），它就获得焦点,如果你点了别的地方（比如菜单栏、另一个窗口），画布就失去焦点。
 
-    def isVisible(self, shape):
+    def isVisible(self, shape):  # 判断某个 shape（标注框、物体）当前是否可见
         return self.visible.get(shape, True)
 
-    def drawing(self):
+    def drawing(self):  # 判断当前是在 创建模式 还是 编辑模式
         return self.mode == self.CREATE
 
-    def editing(self):
+    def editing(self):  # 判断当前是在 创建模式 还是 编辑模式
         return self.mode == self.EDIT
 
-    def setEditing(self, value=True):
+    def setEditing(self, value=True):  # 在 创建模式 和 编辑模式 之间切换
         self.mode = self.EDIT if value else self.CREATE
         if self.mode == self.EDIT:
             # CREATE -> EDIT
@@ -226,19 +226,19 @@ class Canvas(QtWidgets.QWidget):
             self.unHighlight()
             self.deSelectShape()
 
-    def unHighlight(self):
+    def unHighlight(self):  # 鼠标离开目标物体时，把它的高亮状态去掉，并记下我刚才指着哪个物体/顶点/边
         if self.hShape:
             self.hShape.highlightClear()
             self.update()
-        self.prevhShape = self.hShape
-        self.prevhVertex = self.hVertex
-        self.prevhEdge = self.hEdge
+        self.prevhShape = self.hShape  # 当前鼠标悬停的图形
+        self.prevhVertex = self.hVertex  # 当前鼠标悬停的顶点
+        self.prevhEdge = self.hEdge  # 当前鼠标悬停的边
         self.hShape = self.hVertex = self.hEdge = None
 
-    def selectedVertex(self):
+    def selectedVertex(self):  # 是否选中点
         return self.hVertex is not None
 
-    def selectedEdge(self):
+    def selectedEdge(self):  # 是否选中边
         return self.hEdge is not None
 
     def mouseMoveEvent(self, ev):
@@ -395,7 +395,7 @@ class Canvas(QtWidgets.QWidget):
             self.unHighlight()
         self.vertexSelected.emit(self.hVertex is not None)
 
-    def addPointToEdge(self):
+    def addPointToEdge(self):  # 在边上插入一个新顶点
         shape = self.prevhShape
         index = self.prevhEdge
         point = self.prevMovePoint
@@ -408,7 +408,7 @@ class Canvas(QtWidgets.QWidget):
         self.hEdge = None
         self.movingShape = True
 
-    def removeSelectedPoint(self):
+    def removeSelectedPoint(self):  # 删除当前选中的顶点
         shape = self.prevhShape
         index = self.prevhVertex
         if shape is None or index is None:
@@ -528,10 +528,10 @@ class Canvas(QtWidgets.QWidget):
 
             self.movingShape = False
 
-    def endMove(self, copy):
+    def endMove(self, copy):  # 这个函数处理用户拖动或移动选中形状后的“结束动作”。
         assert self.selectedShapes and self.selectedShapesCopy
         assert len(self.selectedShapesCopy) == len(self.selectedShapes)
-        if copy:
+        if copy:  # 参数表示是复制拖动还是直接移动
             for i, shape in enumerate(self.selectedShapesCopy):
                 self.shapes.append(shape)
                 self.selectedShapes[i].selected = False
@@ -544,22 +544,23 @@ class Canvas(QtWidgets.QWidget):
         self.storeShapes()
         return True
 
-    def hideBackroundShapes(self, value):
+    def hideBackroundShapes(self, value): # 隐藏背景shape
         self.hideBackround = value
         if self.selectedShapes:
-            # Only hide other shapes if there is a current selection.
-            # Otherwise the user will not be able to select a shape.
+            # Only hide other shapes if there is a current selection. 只有当前有选中形状时才隐藏其他背景形状，
+            # Otherwise the user will not be able to select a shape. 避免没有选中时用户无法选择形状
             self.setHiding(True)
             self.update()
 
-    def setHiding(self, enable=True):
+    def setHiding(self, enable=True):  # 控制内部变量 _hideBackround，是否真正执行隐藏背景形状的逻辑,只有enable=True时，才使用self.hideBackround的值决定是否隐藏；否则一定不隐藏
         self._hideBackround = self.hideBackround if enable else False
 
     def canCloseShape(self):
         return self.drawing() and (
-            (self.current and len(self.current) > 2)
-            or self.createMode in ["ai_polygon", "ai_mask"]
-        )
+                (self.current and len(self.current) > 2)
+                or self.createMode in ["ai_polygon", "ai_mask"]
+        )  # 绘制模型，有shape，且当前点数大于2， 或者用ai创建的。
+
 
     def mouseDoubleClickEvent(self, ev):
         if self.double_click != "close":

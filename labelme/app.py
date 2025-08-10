@@ -159,23 +159,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.label_dock.setObjectName("Label List")
         self.label_dock.setWidget(self.uniqLabelList)
         # 4 文件列表窗口
-        self.fileSearch = QtWidgets.QLineEdit()
-        self.fileSearch.setPlaceholderText(self.tr("Search Filename"))
-        self.fileSearch.textChanged.connect(self.fileSearchChanged)
-        self.fileListWidget = QtWidgets.QListWidget()
-        self.fileListWidget.itemSelectionChanged.connect(self.fileSelectionChanged)
-        fileListLayout = QtWidgets.QVBoxLayout()
-        fileListLayout.setContentsMargins(0, 0, 0, 0)
-        fileListLayout.setSpacing(0)
-        fileListLayout.addWidget(self.fileSearch)
-        fileListLayout.addWidget(self.fileListWidget)
-        self.file_dock = QtWidgets.QDockWidget(self.tr("File List"), self)
-        self.file_dock.setObjectName("Files")
-        fileListWidget = QtWidgets.QWidget()
-        fileListWidget.setLayout(fileListLayout)
-        self.file_dock.setWidget(fileListWidget)
+        self.fileSearch = QtWidgets.QLineEdit()  # 就是搜索框
+        self.fileSearch.setPlaceholderText(self.tr("Search Filename"))  # 设置占位提示符。
+        self.fileSearch.textChanged.connect(self.fileSearchChanged)  # 文本变更时，触发self.fileSearchChanged 槽函数
+        self.fileListWidget = QtWidgets.QListWidget()  # 创建一个列表控件（QListWidget），用于显示文件名列表
+        self.fileListWidget.itemSelectionChanged.connect(self.fileSelectionChanged)  # 选择改变时触发，self.fileSelectionChanged槽函数
+        fileListLayout = QtWidgets.QVBoxLayout()  # 创建一个垂直方向的布局管理器
+        fileListLayout.setContentsMargins(0, 0, 0, 0)  # 将布局内边距（上、右、下、左）都设为 0，去掉布局与容器边缘之间的空白。
+        fileListLayout.setSpacing(0)  # 将布局中控件之间的间距设为 0（控件间不留额外空隙）。
+        fileListLayout.addWidget(self.fileSearch)  # 把上面创建的 self.fileSearch（搜索输入框）加入到垂直布局中，成为第一个（上方）项。
+        fileListLayout.addWidget(self.fileListWidget)  # 把 self.fileListWidget（文件列表）加入布局，放在搜索框下面
+        self.file_dock = QtWidgets.QDockWidget(self.tr("File List"), self)  # 创建一个可停靠窗口（QDockWidget），标题是国际化后的 "File List"，父窗口是 self（通常 self 是 QMainWindow 的子类实例）
+        self.file_dock.setObjectName("Files")  # 给 dock 设置对象名 "Files"。这个名字常用于保存/恢复界面状态
+        fileListWidget = QtWidgets.QWidget()  #　创建一个普通的容器 QWidget（本地变量 fileListWidget），将用于承载刚才的布局
+        fileListWidget.setLayout(fileListLayout)  # 把之前创建并填充好的垂直布局 fileListLayout 设置到该容器 QWidget 上
+        self.file_dock.setWidget(fileListWidget)  # 将这个容器 QWidget 放到 QDockWidget 里（QDockWidget 只能包含一个 widget）
         # 5 图像窗口，用来标注
-        self.zoomWidget = ZoomWidget()  # 用于缩放
+        self.zoomWidget = ZoomWidget()  # 其实就是一个数字框，用来显示缩放的比例
         self.setAcceptDrops(True)  # 启用窗口的拖放功能，支持直接拖动图片文件到窗口。
 
         self.canvas = self.labelList.canvas = Canvas(  # self.labelList.canvas = self.canvas 表示 labelList 也可以访问 canvas。
@@ -204,6 +204,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.canvas.drawingPolygon.connect(self.toggleDrawingSensitive) # 当用户正在绘制多边形时，触发 toggleDrawingSensitive。可能会禁用某些 UI 按钮，避免误操作。
 
         self.setCentralWidget(scrollArea)  # 将 scrollArea 作为主窗口的中央组件。让 Canvas 画布成为主显示区域。
+
         # 6 根据 self._config 的设置，控制 LabelMe 界面中的 4 个 Dock 窗口的行为。
         features = QtWidgets.QDockWidget.DockWidgetFeatures()
         for dock in ["flag_dock", "label_dock", "shape_dock", "file_dock"]:
@@ -223,7 +224,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.addDockWidget(Qt.RightDockWidgetArea, self.file_dock)
 
         # Actions 文件 225~323
-        action = functools.partial(utils.newAction, self)   # functools.partial 是 Python 标准库 functools 中的一个非常有用的函数，它的作用是：“固定函数的一部分参数，返回一个新的函数”。
+        action = functools.partial(utils.newAction, self)   # functools.partial 是 Python 标准库 functools 中的一个非常有用的函数，它的作用是：“固定函数的一部分参数，返回一个新的函数”,这里相当于起了个名字。
         shortcuts = self._config["shortcuts"]
         quit = action(
             self.tr("&Quit"),

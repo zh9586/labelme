@@ -204,7 +204,7 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationName(__appname__)  # 设置软件名称为 labelme，影响应用程序名称，部分系统组件可能会使用
     app.setWindowIcon(newIcon("icon"))  # 设置labelme软件的图标。
-    app.installTranslator(translator)  # 安装翻译软件。创建-->加载-->安装。就可以完成对界面的翻译。
+    # app.installTranslator(translator)  # 安装翻译软件。创建-->加载-->安装。就可以完成对界面的翻译。
     win = MainWindow(
         config=config,
         filename=filename,

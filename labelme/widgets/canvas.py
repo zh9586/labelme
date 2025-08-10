@@ -116,11 +116,11 @@ class Canvas(QtWidgets.QWidget):
     def setFillDrawing(self, value):
         self._fill_drawing = value
 
-    @property
-    def createMode(self):
+    @property  # 这时你可以通过 obj.createMode 来访问，但不能直接赋值（写入）obj.createMode = x
+    def createMode(self):  # 就是判断以什么方式进行画框；
         return self._createMode
 
-    @createMode.setter
+    @createMode.setter  # 为了支持赋值操作，你需要写一个 setter 方法，用 @属性名.setter 装饰，就可以，obj.createMode = True
     def createMode(self, value):
         if value not in [
             "polygon",
@@ -140,28 +140,28 @@ class Canvas(QtWidgets.QWidget):
             logger.warning("SAM model is not set yet")
             return
 
-        sam: osam.types.Model = self._sam
+        sam: osam.types.Model = self._sam  # sam模型；
 
-        image: np.ndarray = labelme.utils.img_qt_to_arr(self.pixmap.toImage())
+        image: np.ndarray = labelme.utils.img_qt_to_arr(self.pixmap.toImage())  # 转化成numpy类型
         if image.tobytes() in self._sam_embedding:
             return
 
         logger.debug("Computing image embeddings for model {!r}", sam.name)
         self._sam_embedding[image.tobytes()] = sam.encode_image(
-            image=imgviz.asrgb(image)
+            image=imgviz.asrgb(image)  # 将编码向量保存。
         )
 
     def initializeAiModel(self, model_name):
-        if self.pixmap is None:
+        if self.pixmap is None:  # self.pixmap就是所加载的图像
             logger.warning("Pixmap is not set yet")
             return
 
         if self._sam is None or self._sam.name != model_name:
             logger.debug("Initializing AI model {!r}", model_name)
-            self._sam = osam.apis.get_model_type_by_name(model_name)()
-            self._sam_embedding.clear()
+            self._sam = osam.apis.get_model_type_by_name(model_name)()  # 动态获取并实例化对应模型，赋值给self._sam
+            self._sam_embedding.clear()  # 清空之前缓存的所有图像 embedding，因为模型换了，之前缓存的 embedding 可能不适用。
 
-        self._compute_and_cache_image_embedding()
+        self._compute_and_cache_image_embedding()  # 编码缓存。
 
     def storeShapes(self):
         shapesBackup = []
@@ -987,23 +987,23 @@ class Canvas(QtWidgets.QWidget):
         self.hEdge = None
         self.update()
 
-    def setShapeVisible(self, shape, value):
+    def setShapeVisible(self, shape, value):  # 用来设置某个shape（形状）是否可见。
         self.visible[shape] = value
         self.update()
 
-    def overrideCursor(self, cursor):
-        self.restoreCursor()
-        self._cursor = cursor
-        QtWidgets.QApplication.setOverrideCursor(cursor)
+    def overrideCursor(self, cursor):  # 用来临时改变鼠标光标
+        self.restoreCursor()  # 先调用restoreCursor()，确保之前的光标设置被清除，防止累积叠加。
+        self._cursor = cursor  # 保存当前设置的光标，方便后续管理或还原。
+        QtWidgets.QApplication.setOverrideCursor(cursor)  # 通过应用级别设置鼠标光标覆盖，临时改变鼠标样式
 
-    def restoreCursor(self):
-        QtWidgets.QApplication.restoreOverrideCursor()
+    def restoreCursor(self):  # 方法用来恢复鼠标光标。
+        QtWidgets.QApplication.restoreOverrideCursor()  # 调用Qt应用的函数，移除之前的鼠标光标覆盖，还原为默认或之前状态。
 
-    def resetState(self):
-        self.restoreCursor()
-        self.pixmap = None
-        self.shapesBackups = []
-        self.update()
+    def resetState(self):  # 用来重置控件或画布的状态。
+        self.restoreCursor()  # 先恢复光标为默认，避免光标停留在特殊状态。
+        self.pixmap = None  # 清除当前的图像（pixmap），通常表示清空画布或重置内容。
+        self.shapesBackups = []  # 清空形状备份列表，重置历史记录或撤销栈。
+        self.update()  # 刷新界面，触发重绘，保证重置后的界面状态正确显示。
 
 
 def _update_shape_with_sam(

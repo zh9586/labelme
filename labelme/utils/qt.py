@@ -35,7 +35,7 @@ def newAction(  # QAction 被添加到菜单栏或工具栏，那么鼠标点击
     checked=False,  # 如果是可勾选的 QAction，是否默认勾选
 ):
     """Create a new action and assign callbacks, shortcuts, etc."""
-    a = QtWidgets.QAction(text, parent)
+    a = QtWidgets.QAction(text, parent)  # 动作触发，可以是点击菜单，也可以快捷键，或者手动触发action.trigger()，QAction 的触发（triggered 信号）本身不区分是左击、右击、单击还是双击。
     if icon is not None:
         a.setIconText(text.replace(" ", "\n"))
         a.setIcon(newIcon(icon))
@@ -48,15 +48,15 @@ def newAction(  # QAction 被添加到菜单栏或工具栏，那么鼠标点击
         a.setToolTip(tip)
         a.setStatusTip(tip)
     if slot is not None:
-        a.triggered.connect(slot)
+        a.triggered.connect(slot)  # 当这个 QAction 被触发时（triggered 信号发出），就去执行你绑定的 slot（槽函数）。
     if checkable:
         a.setCheckable(True)
-    a.setEnabled(enabled)
-    a.setChecked(checked)
+    a.setEnabled(enabled)  # 设置动作是否可用
+    a.setChecked(checked)  # 设置动作的初始勾选状态
     return a
 
 
-def addActions(widget, actions):
+def addActions(widget, actions): # 其实是将菜单和action绑定起来。
     for action in actions:
         if action is None:
             widget.addSeparator()  # 增加分隔符

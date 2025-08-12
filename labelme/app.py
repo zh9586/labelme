@@ -106,7 +106,7 @@ class MainWindow(QtWidgets.QMainWindow):
             completion=self._config["label_completion"],
             fit_to_content=self._config["fit_to_content"],
             flags=self._config["label_flags"],
-        )  # todo 可能是画完框弹出的哪个对话框。
+        )
 
         self.labelList = LabelListWidget()
         self.lastOpenDir = None
@@ -131,7 +131,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.flag_dock.setObjectName("Flags")
         self.flag_widget = QtWidgets.QListWidget()  # 一个显示项目的列表部件的实例
         if config["flags"]:
-            self.loadFlags({k: False for k in config["flags"]})  # todo 没看太懂，要干什么
+            self.loadFlags({k: False for k in config["flags"]})  # 就是把配置文件一些比如occluded之类显示在哪里；
         self.flag_dock.setWidget(self.flag_widget)  # flag_dock 中会显示 flag_widget，也就是显示一个列表。
         self.flag_widget.itemChanged.connect(self.setDirty)  # 每当列表项的状态发生更改时，setDirty() 方法会被调用
         # 2 多边形标签窗口
@@ -332,7 +332,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tr('Toggle "keep previous annotation" mode'),
             checkable=True,
         )
-        toggle_keep_prev_mode.setChecked(self._config["keep_prev"])
+        toggle_keep_prev_mode.setChecked(self._config["keep_prev"])  # setChecked是设置状态。
 
         createMode = action(
             self.tr("Create Polygons"),
@@ -390,7 +390,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tr("Start drawing ai_polygon. Ctrl+LeftClick ends creation."),
             enabled=False,
         )
-        createAiPolygonMode.changed.connect(
+        createAiPolygonMode.changed.connect(   # todo 细看
             lambda: self.canvas.initializeAiModel(
                 model_name=self._selectAiModelComboBox.itemData(
                     self._selectAiModelComboBox.currentIndex()
@@ -515,14 +515,14 @@ class MainWindow(QtWidgets.QMainWindow):
             tip=self.tr("Show tutorial page"),
         )
         # 视图其他部分 516 ~ 635
-        zoom = QtWidgets.QWidgetAction(self)  # todo
-        zoomBoxLayout = QtWidgets.QVBoxLayout()
-        zoomLabel = QtWidgets.QLabel(self.tr("Zoom"))
-        zoomLabel.setAlignment(Qt.AlignCenter)
-        zoomBoxLayout.addWidget(zoomLabel)
-        zoomBoxLayout.addWidget(self.zoomWidget)
+        zoom = QtWidgets.QWidgetAction(self)  # 区别于QAction， QAction 是“行为”，QWidgetAction 是“带有界面控件的行为”。
+        zoomBoxLayout = QtWidgets.QVBoxLayout()  # 垂直布局
+        zoomLabel = QtWidgets.QLabel(self.tr("Zoom"))  #
+        zoomLabel.setAlignment(Qt.AlignCenter)  # 中心对齐
+        zoomBoxLayout.addWidget(zoomLabel)  # 把zoom这个文字。
+        zoomBoxLayout.addWidget(self.zoomWidget)  # 把缩放比例那个框，都放到竖直布局中
         zoom.setDefaultWidget(QtWidgets.QWidget())
-        zoom.defaultWidget().setLayout(zoomBoxLayout)
+        zoom.defaultWidget().setLayout(zoomBoxLayout)  # 把布局放到QWidget中，再放到QWidgetAction
         self.zoomWidget.setWhatsThis(
             str(
                 self.tr(
@@ -633,7 +633,7 @@ class MainWindow(QtWidgets.QMainWindow):
             enabled=True,
         )
         if self._config["canvas"]["fill_drawing"]:
-            fill_drawing.trigger()  # 触发action
+            fill_drawing.trigger()  # 触发action, todo 没发现实际效果
 
         # Label list context menu.  在多边形标签中，增加右击显示，编辑和删除的按钮。
         labelMenu = QtWidgets.QMenu()
@@ -790,7 +790,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ),
         )
 
-        self.menus.file.aboutToShow.connect(self.updateFileMenu)  # todo
+        self.menus.file.aboutToShow.connect(self.updateFileMenu)  # 更新最近打开
 
         # Custom context menu for the canvas widget:
         utils.addActions(self.canvas.menus[0], self.actions.menu)  # 画布上右击出现的窗口
@@ -800,14 +800,14 @@ class MainWindow(QtWidgets.QMainWindow):
                 action("&Copy here", self.copyShape),
                 action("&Move here", self.moveShape),
             ),
-        )  # 在画布上，右击选中框后，移动到另外一个位置就出现这个菜单。
+        )  # 在画布上，右击选中框后，按住移动到另外一个位置就出现这个菜单。
         # todo tools上ai那个框。猜测的。803~848
         selectAiModel = QtWidgets.QWidgetAction(self)
         selectAiModel.setDefaultWidget(QtWidgets.QWidget())
         selectAiModel.defaultWidget().setLayout(QtWidgets.QVBoxLayout())
         #
         selectAiModelLabel = QtWidgets.QLabel(self.tr("AI Mask Model"))
-        selectAiModelLabel.setAlignment(QtCore.Qt.AlignCenter)
+        selectAiModelLabel.setAlignment(QtCore.Qt.AlignCenter)  # 表示“居中对齐”
         selectAiModel.defaultWidget().layout().addWidget(selectAiModelLabel)
         #
         self._selectAiModelComboBox = QtWidgets.QComboBox()
@@ -823,24 +823,24 @@ class MainWindow(QtWidgets.QMainWindow):
             ("sam2:large", "Sam2 (accuracy)"),
         ]
         for model_name, model_ui_name in MODEL_NAMES:
-            self._selectAiModelComboBox.addItem(model_ui_name, userData=model_name)
-        model_ui_names: list[str] = [model_ui_name for _, model_ui_name in MODEL_NAMES]
+            self._selectAiModelComboBox.addItem(model_ui_name, userData=model_name)  # 加到下拉框中；
+        model_ui_names: list[str] = [model_ui_name for _, model_ui_name in MODEL_NAMES]  # 拿到uiname也就是EfficientSam (speed)
         if self._config["ai"]["default"] in model_ui_names:
-            model_index = model_ui_names.index(self._config["ai"]["default"])
+            model_index = model_ui_names.index(self._config["ai"]["default"])  # 根据配置文件拿到默认模型的索引。
         else:
             logger.warning(
                 "Default AI model is not found: %r",
                 self._config["ai"]["default"],
             )
             model_index = 0
-        self._selectAiModelComboBox.setCurrentIndex(model_index)
+        self._selectAiModelComboBox.setCurrentIndex(model_index)  # 默认作为当前选择
         self._selectAiModelComboBox.currentIndexChanged.connect(
             lambda index: self.canvas.initializeAiModel(
                 model_name=self._selectAiModelComboBox.itemData(index)
             )
             if self.canvas.createMode in ["ai_polygon", "ai_mask"]
             else None
-        )
+        )  # 如果模型改变，就触发去改变模型；
 
         self._ai_prompt_widget: QtWidgets.QWidget = AiPromptWidget(
             on_submit=self._submit_ai_prompt, parent=self
@@ -888,18 +888,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.image = QtGui.QImage()
         self.imagePath = None
         self.recentFiles = []
-        self.maxRecent = 7
+        self.maxRecent = 7  # 最近文件列表最大长度，限制只保存最近7个。
         self.otherData = None
         self.zoom_level = 100
         self.fit_window = False
-        self.zoom_values = {}  # key=filename, value=(zoom_mode, zoom_value)
-        self.brightnessContrast_values = {}
+        self.zoom_values = {}  # key=filename, value=(zoom_mode, zoom_value), 每个图像都有自己的缩放值
+        self.brightnessContrast_values = {}  # 存储不同文件的亮度和对比度调整值。
         self.scroll_values = {
             Qt.Horizontal: {},
             Qt.Vertical: {},
-        }  # key=filename, value=scroll_value
+        }  # key=filename, value=scroll_value  # 水平和垂直滚动条的位置，针对不同文件分别保存。
 
-        if filename is not None and osp.isdir(filename):
+        if filename is not None and osp.isdir(filename):  # 导入数据。
             self.importDirImages(filename, load=False)
         else:
             self.filename = filename
@@ -910,19 +910,19 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # XXX: Could be completely declarative.
         # Restore application settings.
-        self.settings = QtCore.QSettings("labelme", "labelme")
-        self.recentFiles = self.settings.value("recentFiles", []) or []
-        size = self.settings.value("window/size", QtCore.QSize(600, 500))
-        position = self.settings.value("window/position", QtCore.QPoint(0, 0))
-        state = self.settings.value("window/state", QtCore.QByteArray())
-        self.resize(size)
-        self.move(position)
+        self.settings = QtCore.QSettings("labelme", "labelme")  # QSettings 是 Qt 提供的一个类，用来存取应用的配置数据
+        self.recentFiles = self.settings.value("recentFiles", []) or []  # 读取最近打开文件列表 recentFiles，如果没有则返回空列表
+        size = self.settings.value("window/size", QtCore.QSize(600, 500))  # 读取窗口大小 window/size，如果没保存则用默认的 (600, 500)。
+        position = self.settings.value("window/position", QtCore.QPoint(0, 0))  # 读取窗口位置 window/position，默认 (0, 0)。
+        state = self.settings.value("window/state", QtCore.QByteArray())  # 读取窗口状态（包含工具栏、菜单栏、停靠状态等）window/state。
+        self.resize(size)  # 把窗口大小调整到上次关闭时保存的大小
+        self.move(position)  # 把窗口移动到上次保存的位置
         # or simply:
         # self.restoreGeometry(settings['window/geometry']
-        self.restoreState(state)
+        self.restoreState(state)  # 恢复窗口的其它状态，比如工具栏和菜单栏的显示状态
 
         # Populate the File menu dynamically.
-        self.updateFileMenu()
+        self.updateFileMenu()  # 根据最近文件列表，更新 “文件” 菜单，动态生成菜单项，方便用户快速打开最近文件。
         # Since loading the file may take some time,
         # make sure it runs in the background.
         if self.filename is not None:  # 文件名不为空，放到事件队列中，在后台加载，不会阻塞主线程。

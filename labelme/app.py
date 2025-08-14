@@ -1678,24 +1678,24 @@ class MainWindow(QtWidgets.QMainWindow):
             self.fileListWidget.repaint()
             return
 
-        self.resetState()
-        self.canvas.setEnabled(False)
+        self.resetState()  # 重置一些状态，如之前的标注、选中图形等
+        self.canvas.setEnabled(False)  # QtWidgets.QGraphicsView 中也是合法的。
         if filename is None:
-            filename = self.settings.value("filename", "")
+            filename = self.settings.value("filename", "")  # 如果没有传入文件名，尝试从配置或上次打开的文件中获取
         filename = str(filename)
-        if not QtCore.QFile.exists(filename):
+        if not QtCore.QFile.exists(filename):  # 如果文件不存在，弹出错误提示并返回 False
             self.errorMessage(
                 self.tr("Error opening file"),
                 self.tr("No such file: <b>%s</b>") % filename,
             )
             return False
         # assumes same name, but json extension
-        self.status(str(self.tr("Loading %s...")) % osp.basename(str(filename)))
+        self.status(str(self.tr("Loading %s...")) % osp.basename(str(filename)))  # 显示状态信息：正在加载图片
         label_file = osp.splitext(filename)[0] + ".json"
         if self.output_dir:
             label_file_without_path = osp.basename(label_file)
             label_file = osp.join(self.output_dir, label_file_without_path)
-        if QtCore.QFile.exists(label_file) and LabelFile.is_label_file(label_file):
+        if QtCore.QFile.exists(label_file) and LabelFile.is_label_file(label_file):  # 如果标签文件存在且格式正确
             try:
                 self.labelFile = LabelFile(label_file)
             except LabelFileError as e:
@@ -1709,20 +1709,20 @@ class MainWindow(QtWidgets.QMainWindow):
                 )
                 self.status(self.tr("Error reading %s") % label_file)
                 return False
-            self.imageData = self.labelFile.imageData
+            self.imageData = self.labelFile.imageData  # 图片数据
             self.imagePath = osp.join(
                 osp.dirname(label_file),
                 self.labelFile.imagePath,
-            )
-            self.otherData = self.labelFile.otherData
+            )  # 图片路径
+            self.otherData = self.labelFile.otherData  # 其他数据
         else:
-            self.imageData = LabelFile.load_image_file(filename)
+            self.imageData = LabelFile.load_image_file(filename)  # 如果没有标签文件，直接读取图片数据
             if self.imageData:
                 self.imagePath = filename
             self.labelFile = None
-        image = QtGui.QImage.fromData(self.imageData)
+        image = QtGui.QImage.fromData(self.imageData)  # 拿到图像了。
 
-        if image.isNull():
+        if image.isNull():  # 如果失败，提示支持的图片格式，并返回 False
             formats = [
                 "*.{}".format(fmt.data().decode())
                 for fmt in QtGui.QImageReader.supportedImageFormats()
@@ -1738,29 +1738,29 @@ class MainWindow(QtWidgets.QMainWindow):
             return False
         self.image = image
         self.filename = filename
-        if self._config["keep_prev"]:
+        if self._config["keep_prev"]:  # 如果配置了 "keep_prev"，记录之前的标注形状 shapes
             prev_shapes = self.canvas.shapes
-        self.canvas.loadPixmap(QtGui.QPixmap.fromImage(image))
-        flags = {k: False for k in self._config["flags"] or []}
-        if self.labelFile:
+        self.canvas.loadPixmap(QtGui.QPixmap.fromImage(image))  # 将图片显示到 canvas 上 todo
+        flags = {k: False for k in self._config["flags"] or []}  # 初始化标记 flags
+        if self.labelFile:  # 如果有标签文件，加载标注
             self.loadLabels(self.labelFile.shapes)
             if self.labelFile.flags is not None:
-                flags.update(self.labelFile.flags)
-        self.loadFlags(flags)
-        if self._config["keep_prev"] and self.noShapes():
+                flags.update(self.labelFile.flags)  # 更新并应用 flags
+        self.loadFlags(flags)  # 加载flags
+        if self._config["keep_prev"] and self.noShapes():  # 如果保留以前标注且当前没有标注，则恢复之前的形状。
             self.loadShapes(prev_shapes, replace=False)
-            self.setDirty()
+            self.setDirty() # 设置状态为脏（Dirty）或干净（Clean）
         else:
             self.setClean()
-        self.canvas.setEnabled(True)
-        # set zoom values
+        self.canvas.setEnabled(True)  # 启用 canvas（加载完毕，可以操作）
+        # set zoom values  恢复缩放状态，如果有历史缩放信息,否则初始调整缩放
         is_initial_load = not self.zoom_values
         if self.filename in self.zoom_values:
             self.zoomMode = self.zoom_values[self.filename][0]
             self.setZoom(self.zoom_values[self.filename][1])
         elif is_initial_load or not self._config["keep_prev_scale"]:
             self.adjustScale(initial=True)
-        # set scroll values
+        # set scroll values  # 恢复滚动条位置（水平或垂直）
         for orientation in self.scroll_values:
             if self.filename in self.scroll_values[orientation]:
                 self.setScroll(
@@ -1790,11 +1790,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.brightnessContrast_values[self.filename] = (brightness, contrast)
         if brightness is not None or contrast is not None:
             dialog.onNewValue(None)
-        self.paintCanvas()
-        self.addRecentFile(self.filename)
-        self.toggleActions(True)
-        self.canvas.setFocus()
-        self.status(str(self.tr("Loaded %s")) % osp.basename(str(filename)))
+        self.paintCanvas()  # 刷新 canvas，重新绘制图片和标注 todo
+        self.addRecentFile(self.filename)  # 记录最近打开的文件
+        self.toggleActions(True)  # 启用相关操作按钮
+        self.canvas.setFocus()  # 将焦点设置到 canvas todo
+        self.status(str(self.tr("Loaded %s")) % osp.basename(str(filename)))  # 显示加载完成状态
         return True
 
     def resizeEvent(self, event):
@@ -1899,34 +1899,34 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._config["keep_prev"] = keep_prev
 
-    def openNextImg(self, _value=False, load=True):
-        keep_prev = self._config["keep_prev"]
+    def openNextImg(self, _value=False, load=True):  # load：是否立即调用 loadFile 加载图片
+        keep_prev = self._config["keep_prev"]  # 读取keep_prev,布尔型，控制是否保留之前标注或图片状态
         if QtWidgets.QApplication.keyboardModifiers() == (
             Qt.ControlModifier | Qt.ShiftModifier
-        ):
+        ):  # 检查当前按键修饰符是否同时按下 Ctrl + Shift
             self._config["keep_prev"] = True
 
-        if not self.mayContinue():
+        if not self.mayContinue():  # 调用 mayContinue() 检查是否可以继续打开下一张图片
             return
 
-        if len(self.imageList) <= 0:
+        if len(self.imageList) <= 0:  # 如果图片列表为空，则直接返回，避免访问空列表引发错误
             return
 
-        filename = None
-        if self.filename is None:
+        filename = None  # self.filename 是当前显示的图片路径，
+        if self.filename is None:  # 如果当前没有图片（第一次打开），则把 filename 设置为 列表第一张图片
             filename = self.imageList[0]
-        else:
+        else:  # 如果当前有图片，找到当前图片在列表中的索引 currIndex，
             currIndex = self.imageList.index(self.filename)
             if currIndex + 1 < len(self.imageList):
-                filename = self.imageList[currIndex + 1]
+                filename = self.imageList[currIndex + 1]  # 如果不是最后一张，下一张就是 currIndex + 1
             else:
-                filename = self.imageList[-1]
-        self.filename = filename
+                filename = self.imageList[-1]  # 如果已经是最后一张，则保持最后一张
+        self.filename = filename  # 更新当前图片为选定的下一张
 
-        if self.filename and load:
-            self.loadFile(self.filename)
+        if self.filename and load:  # 如果有图片路径并且 load=True
+            self.loadFile(self.filename)  # 调用 self.loadFile(filename) 方法加载图片, loadFile 里通常会把图片显示到 Canvas 或刷新界面
 
-        self._config["keep_prev"] = keep_prev
+        self._config["keep_prev"] = keep_prev # 把之前保存的 "keep_prev" 配置还原,也就是说 Ctrl+Shift 修改的临时状态只对本次切换有效
 
     def openFile(self, _value=False):
         if not self.mayContinue():

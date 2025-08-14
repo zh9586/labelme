@@ -17,35 +17,36 @@ from labelme.shape import Shape
 # - [maybe] Find optimal epsilon value.
 
 
-CURSOR_DEFAULT = QtCore.Qt.ArrowCursor  # type: ignore[attr-defined]
-CURSOR_POINT = QtCore.Qt.PointingHandCursor  # type: ignore[attr-defined]
-CURSOR_DRAW = QtCore.Qt.CrossCursor  # type: ignore[attr-defined]
-CURSOR_MOVE = QtCore.Qt.ClosedHandCursor  # type: ignore[attr-defined]
-CURSOR_GRAB = QtCore.Qt.OpenHandCursor  # type: ignore[attr-defined]
+CURSOR_DEFAULT = QtCore.Qt.ArrowCursor  # type: ignore[attr-defined]  # 普通箭头光标
+CURSOR_POINT = QtCore.Qt.PointingHandCursor  # type: ignore[attr-defined]  # 手指光标，通常用于链接可点击
+CURSOR_DRAW = QtCore.Qt.CrossCursor  # type: ignore[attr-defined] # 十字光标，通常用于绘图
+CURSOR_MOVE = QtCore.Qt.ClosedHandCursor  # type: ignore[attr-defined]  # 闭合的手，表示拖动中
+CURSOR_GRAB = QtCore.Qt.OpenHandCursor  # type: ignore[attr-defined]  # 张开的手，表示可以抓取
 
-MOVE_SPEED = 5.0
+MOVE_SPEED = 5.0  # 鼠标更新步长为5个像素。
 
 
-class Canvas(QtWidgets.QWidget):
-    zoomRequest = QtCore.pyqtSignal(int, QtCore.QPoint)
-    scrollRequest = QtCore.pyqtSignal(int, int)
-    newShape = QtCore.pyqtSignal()
-    selectionChanged = QtCore.pyqtSignal(list)
-    shapeMoved = QtCore.pyqtSignal()
-    drawingPolygon = QtCore.pyqtSignal(bool)
-    vertexSelected = QtCore.pyqtSignal(bool)
-    mouseMoved = QtCore.pyqtSignal(QtCore.QPointF)
+class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它显示的是 QGraphicsScene 中的 items。
+    # 每个信号都可以在类中被 emit() 发射，然后外部用 connect() 绑定槽函数。
+    zoomRequest = QtCore.pyqtSignal(int, QtCore.QPoint)  # 请求缩放，参数可能是缩放比例和鼠标位置
+    scrollRequest = QtCore.pyqtSignal(int, int)  # 请求滚动，两个参数可能表示水平和垂直滚动量。
+    newShape = QtCore.pyqtSignal()  # 新建形状事件。
+    selectionChanged = QtCore.pyqtSignal(list)  #  当前选中形状变化，传入选中形状列表
+    shapeMoved = QtCore.pyqtSignal()  # 形状被移动
+    drawingPolygon = QtCore.pyqtSignal(bool)  #  是否正在绘制多边形
+    vertexSelected = QtCore.pyqtSignal(bool)  # 是否选中顶点。
+    mouseMoved = QtCore.pyqtSignal(QtCore.QPointF)  # 鼠标移动事件，QPointF 是浮点坐标
 
-    CREATE, EDIT = 0, 1
+    CREATE, EDIT = 0, 1  # 两种模式，创建模式 和编辑模式
 
     # polygon, rectangle, line, or point
-    _createMode = "polygon"
+    _createMode = "polygon"  # 默认创建多边形，也就是创建模式下的子任务
 
-    _fill_drawing = False
+    _fill_drawing = False  # 控制绘制形状时是否填充颜色。
 
     def __init__(self, *args, **kwargs):
-        self.epsilon = kwargs.pop("epsilon", 10.0)  # 用于控制某些形状的 精度 或 容差 value = dict.pop(key, default)
-        self.double_click = kwargs.pop("double_click", "close")
+        self.epsilon = kwargs.pop("epsilon", 10.0)  # 控制形状精度或容差，例如鼠标点击与顶点距离的判定。10.0是取不到时的默认值。
+        self.double_click = kwargs.pop("double_click", "close")  # 配置双击行为，"close"：双击关闭多边形；None：不触发关闭。
         if self.double_click not in [None, "close"]:
             raise ValueError(
                 "Unexpected value for double_click event: {}".format(self.double_click)
@@ -64,46 +65,46 @@ class Canvas(QtWidgets.QWidget):
                 "ai_mask": False,
             },
         )
-        super(Canvas, self).__init__(*args, **kwargs)
+        super(Canvas, self).__init__(*args, **kwargs)  # 初始化 QWidget todo 1
         # Initialise local state.
-        self.mode = self.EDIT
-        self.shapes = []
-        self.shapesBackups = []
-        self.current = None
-        self.selectedShapes = []  # save the selected shapes here
+        self.mode = self.EDIT  # 当前模式，默认编辑
+        self.shapes = []  # 当前画布上的所有形状列表
+        self.shapesBackups = []  # 用于撤销shapes
+        self.current = None  # 当前正在编辑的形状。
+        self.selectedShapes = []  # save the selected shapes here  # 当前选中的形状。
         self.selectedShapesCopy = []
         # self.line represents:
         #   - createMode == 'polygon': edge from last point to current
         #   - createMode == 'rectangle': diagonal line of the rectangle
         #   - createMode == 'line': the line
         #   - createMode == 'point': the point
-        self.line = Shape()
+        self.line = Shape()  # 临时线条对象，表示不同模式下的边、对角线等
         self.prevPoint = QtCore.QPoint()  # 记录上一次鼠标点击位置。
         self.prevMovePoint = QtCore.QPoint()  # 记录上一次鼠标移动位置。
-        self.offsets = QtCore.QPoint(), QtCore.QPoint()  # 可能用于 拖动形状时的偏移量。
+        self.offsets = QtCore.QPoint(), QtCore.QPoint()  # 拖动框时的偏移量。
         self.scale = 1.0  # 控制画布缩放比例，默认为 1.0（原始大小）。
         self.pixmap = QtGui.QPixmap()  # 用于存储背景图像，例如加载一张图片进行标注
-        self.visible = {}  # 可能存储哪些元素可见
+        self.visible = {}  # 存储哪些元素可见
         self._hideBackround = False  # 控制 是否隐藏背景
         self.hideBackround = False  # 控制 是否隐藏背景
-        self.hShape = None  # 高亮状态
-        self.prevhShape = None
-        self.hVertex = None
-        self.prevhVertex = None
-        self.hEdge = None
-        self.prevhEdge = None
-        self.movingShape = False
-        self.snapping = True
-        self.hShapeIsSelected = False
-        self._painter = QtGui.QPainter()
-        self._cursor = CURSOR_DEFAULT
+        self.hShape = None  # 当前被高亮显示的形状对象
+        self.prevhShape = None  # 上一次高亮的形状， 主要用于 刷新绘制，避免每次重绘整个画布，只更新高亮变化的形状
+        self.hVertex = None  # 当前高亮的顶点（vertex），通常鼠标悬停在某个顶点上时设置
+        self.prevhVertex = None  # 上一次高亮的顶点，用于优化绘制和交互。
+        self.hEdge = None  # 当前高亮的边
+        self.prevhEdge = None  # 上一次高亮的边
+        self.movingShape = False  # 是否正在拖动某个形状
+        self.snapping = True  # 是否启用吸附功能， 启用时，绘制或移动形状会自动对齐到网格或附近顶点。
+        self.hShapeIsSelected = False  # 当前高亮形状是否已经被选中， 有些操作只对选中形状有效，比如拖动、删除、修改属性，用于区分“仅高亮”和“已选中”的状态
+        self._painter = QtGui.QPainter()  # QPainter 是 PyQt/PySide 绘图核心对象。 用于在 QWidget 或 QPixmap 上绘制, 形状,高亮效果等。 todo
+        self._cursor = CURSOR_DEFAULT  # 当前光标，默认箭头。
         # Menus:
         # 0: right-click without selection and dragging of shapes
         # 1: right-click with selection and dragging of shapes
-        self.menus = (QtWidgets.QMenu(), QtWidgets.QMenu())
+        self.menus = (QtWidgets.QMenu(), QtWidgets.QMenu())  # 保存两个菜单
         # Set widget options.
-        self.setMouseTracking(True)
-        self.setFocusPolicy(QtCore.Qt.WheelFocus)
+        self.setMouseTracking(True)  # 默认情况下，QWidget 只有在鼠标按下时才会触发 mouseMoveEvent, 设为 True 后，即使鼠标只是移动，也会持续触发 mouseMoveEvent.
+        self.setFocusPolicy(QtCore.Qt.WheelFocus)  # 决定这个控件是否能接收键盘事件。
 
         self._sam: Optional[osam.types.Model] = None
         self._sam_embedding: collections.OrderedDict[
@@ -679,22 +680,22 @@ class Canvas(QtWidgets.QWidget):
 
     def paintEvent(self, event: Optional[QtGui.QPaintEvent]) -> None:
         if not self.pixmap:
-            return super(Canvas, self).paintEvent(event)
+            return super(Canvas, self).paintEvent(event)  # 如果 self.pixmap 为 None 或空，就调用父类默认绘制方法。避免空图像导致绘制错误。
 
-        p = self._painter
-        p.begin(self)
-        p.setRenderHint(QtGui.QPainter.Antialiasing)
+        p = self._painter  # 获取一个 QPainter 对象 p 用于绘制
+        p.begin(self)  # 开始在当前 Canvas 上绘制
+        p.setRenderHint(QtGui.QPainter.Antialiasing)  # 设置抗锯齿和高质量渲染，确保绘制线条和平滑缩放图片时效果更好。
         p.setRenderHint(QtGui.QPainter.HighQualityAntialiasing)
         p.setRenderHint(QtGui.QPainter.SmoothPixmapTransform)
 
-        p.scale(self.scale, self.scale)
-        p.translate(self.offsetToCenter())
+        p.scale(self.scale, self.scale)  # 按当前缩放比例缩放绘制内容
+        p.translate(self.offsetToCenter())  # 平移坐标系，将内容中心对齐到视图中心
 
-        p.drawPixmap(0, 0, self.pixmap)
+        p.drawPixmap(0, 0, self.pixmap)  # 在 (0,0) 绘制 self.pixmap, 此时图像会根据上面的 scale 和 translate 调整位置和大小。
 
-        p.scale(1 / self.scale, 1 / self.scale)
+        p.scale(1 / self.scale, 1 / self.scale)  # 将缩放比例恢复到 1:1，用于后续绘制不受缩放影响的内容，例如 UI 标记或十字准线。
 
-        # draw crosshair
+        # draw crosshair  # 绘制十字准线
         if (
             self._crosshair[self._createMode]
             and self.drawing()
@@ -715,20 +716,20 @@ class Canvas(QtWidgets.QWidget):
                 self.height() - 1,
             )
 
-        Shape.scale = self.scale
+        Shape.scale = self.scale  # 绘制已有形状,可能有标签就绘制上去。
         for shape in self.shapes:
             if (shape.selected or not self._hideBackround) and self.isVisible(shape):
                 shape.fill = shape.selected or shape == self.hShape
                 shape.paint(p)
-        if self.current:
+        if self.current:  # 绘制当前正在绘制的形状
             self.current.paint(p)
             assert len(self.line.points) == len(self.line.point_labels)
             self.line.paint(p)
-        if self.selectedShapesCopy:
+        if self.selectedShapesCopy:  # 绘制选中的复制形状，复制shape其实就是另外绘制一个shape
             for s in self.selectedShapesCopy:
                 s.paint(p)
 
-        if not self.current:
+        if not self.current:  # 处理多边形绘制
             p.end()
             return
 
@@ -746,7 +747,7 @@ class Canvas(QtWidgets.QWidget):
                 drawing_shape.fill_color.setAlpha(64)
             drawing_shape.addPoint(self.line[1])
 
-        if self.createMode not in ["ai_polygon", "ai_mask"]:
+        if self.createMode not in ["ai_polygon", "ai_mask"]:  # 处理 AI 辅助绘制
             p.end()
             return
 
@@ -882,18 +883,18 @@ class Canvas(QtWidgets.QWidget):
             return self.scale * self.pixmap.size()
         return super(Canvas, self).minimumSizeHint()
 
-    def wheelEvent(self, ev):
-        mods = ev.modifiers()
-        delta = ev.angleDelta()
-        if QtCore.Qt.ControlModifier == int(mods):
+    def wheelEvent(self, ev):  # ev 是 QWheelEvent 对象，包含滚轮滚动的各种信息
+        mods = ev.modifiers()  #  获取在滚轮滚动时按下的键盘修饰键; 返回的是一个标志位，可以用 QtCore.Qt.ControlModifier、QtCore.Qt.ShiftModifier 等进行判断。
+        delta = ev.angleDelta()  # 获取滚轮滚动的增量（角度差）,返回一个 QPoint 对象, delta.x() 表示水平方向滚动量, delta.y() 表示垂直方向滚动量。
+        if QtCore.Qt.ControlModifier == int(mods):  # 判断滚轮事件发生时是否按下了 Ctrl 键。
             # with Ctrl/Command key
             # zoom
-            self.zoomRequest.emit(delta.y(), ev.pos())
-        else:
+            self.zoomRequest.emit(delta.y(), ev.pos())  # 当按下 Ctrl 键时，触发一个 自定义信号 zoomRequest, ev.pos()：事件发生时在 视图坐标中的位置
+        else:  #  如果没有按下 Ctrl 键，认为是普通滚动
             # scroll
-            self.scrollRequest.emit(delta.x(), QtCore.Qt.Horizontal)
+            self.scrollRequest.emit(delta.x(), QtCore.Qt.Horizontal)  # 触发 scrollRequest 信号，把滚动量和方向发送给信号的监听者
             self.scrollRequest.emit(delta.y(), QtCore.Qt.Vertical)
-        ev.accept()
+        ev.accept()  #　标记事件已被处理，不再传递给父类或默认事件处理。
 
     def moveByKeyboard(self, offset):
         if self.selectedShapes:
@@ -969,7 +970,7 @@ class Canvas(QtWidgets.QWidget):
             self.drawingPolygon.emit(False)
         self.update()
 
-    def loadPixmap(self, pixmap, clear_shapes=True):
+    def loadPixmap(self, pixmap, clear_shapes=True):  # 将图像数据放到canvas的self.pixmap里
         self.pixmap = pixmap
         if self._sam:
             self._compute_and_cache_image_embedding()

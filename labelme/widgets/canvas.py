@@ -892,7 +892,7 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
             self.zoomRequest.emit(delta.y(), ev.pos())  # 当按下 Ctrl 键时，触发一个 自定义信号 zoomRequest, ev.pos()：事件发生时在 视图坐标中的位置
         else:  #  如果没有按下 Ctrl 键，认为是普通滚动
             # scroll
-            self.scrollRequest.emit(delta.x(), QtCore.Qt.Horizontal)  # 触发 scrollRequest 信号，把滚动量和方向发送给信号的监听者
+            self.scrollRequest.emit(delta.x(), QtCore.Qt.Horizontal)  # 触发 scrollRequest 信号，把滚动量和方向发送给信号的监听者,移动进度条。
             self.scrollRequest.emit(delta.y(), QtCore.Qt.Vertical)
         ev.accept()  #　标记事件已被处理，不再传递给父类或默认事件处理。
 

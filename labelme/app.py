@@ -1301,9 +1301,9 @@ class MainWindow(QtWidgets.QMainWindow):
         items = self.fileListWidget.selectedItems()  # 哪些文件被选中，这文件列表那个窗口。
         if not items:
             return
-        item = items[0]
+        item = items[0]  # 默认第一文件被打开。
 
-        if not self.mayContinue():  # 弹出窗口，用户点了取消。
+        if not self.mayContinue():  # 弹出窗口，用户点了取消。没有其他事件干扰。
             return
 
         currIndex = self.imageList.index(str(item.text()))
@@ -1673,9 +1673,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # changing fileListWidget loads file
         if filename in self.imageList and (
             self.fileListWidget.currentRow() != self.imageList.index(filename)
-        ):
+        ):  # 文件在列表中 并且 当前选中和之前选中不一致。
             self.fileListWidget.setCurrentRow(self.imageList.index(filename))
-            self.fileListWidget.repaint()
+            self.fileListWidget.repaint()  # 只是刷新文件列表，非必须。
             return
 
         self.resetState()  # 重置一些状态，如之前的标注、选中图形等

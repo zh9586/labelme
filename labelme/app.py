@@ -1525,7 +1525,7 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 self.canvas.deSelectShape()
 
-    def labelItemChanged(self, item):
+    def labelItemChanged(self, item):  # 被修改项作为参数传入
         shape = item.shape()
         self.canvas.setShapeVisible(shape, item.checkState() == Qt.Checked)
 

@@ -421,13 +421,13 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
         self.movingShape = True  # Save changes
 
     def mousePressEvent(self, ev):
-        pos = self.transformPos(ev.localPos())
+        pos = self.transformPos(ev.localPos())  # 事件发生的 widget 的本地坐标系（左上角 = (0,0)，单位像素）
 
-        is_shift_pressed = ev.modifiers() & QtCore.Qt.ShiftModifier
+        is_shift_pressed = ev.modifiers() & QtCore.Qt.ShiftModifier  # 是否按压shift
 
         if ev.button() == QtCore.Qt.LeftButton:
             if self.drawing():
-                if self.current:
+                if self.current:  # 只在“正在绘制”状态下才走后面的逻辑。
                     # Add point to existing shape.
                     if self.createMode == "polygon":
                         self.current.addPoint(self.line[1])
@@ -452,7 +452,7 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
                         self.line.point_labels[0] = self.current.point_labels[-1]
                         if ev.modifiers() & QtCore.Qt.ControlModifier:
                             self.finalise()
-                elif not self.outOfPixmap(pos):
+                elif not self.outOfPixmap(pos):  # 还没有进行中的图形，且点击位置 pos 在图像范围内：开始一个新图形。
                     # Create new shape.
                     self.current = Shape(
                         shape_type="points"
@@ -493,14 +493,14 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
                 self.selectShapePoint(pos, multiple_selection_mode=group_mode)
                 self.prevPoint = pos
                 self.repaint()
-        elif ev.button() == QtCore.Qt.RightButton and self.editing():
-            group_mode = int(ev.modifiers()) == QtCore.Qt.ControlModifier
+        elif ev.button() == QtCore.Qt.RightButton and self.editing():  # 鼠标按下的是右键 且 当前处于编辑状态
+            group_mode = int(ev.modifiers()) == QtCore.Qt.ControlModifier  # 读取按下时的修饰键并决定是否进入“组合/多选模式”。
             if not self.selectedShapes or (
                 self.hShape is not None and self.hShape not in self.selectedShapes
-            ):
-                self.selectShapePoint(pos, multiple_selection_mode=group_mode)
-                self.repaint()
-            self.prevPoint = pos
+            ):  # 只有在“没有选中任何东西”或“当前鼠标下的形状还没被选中”时，才去执行选择操作；否则如果当前高亮形状已经是选中的，就不重复选中了。
+                self.selectShapePoint(pos, multiple_selection_mode=group_mode)  # 调用选择函数，基于点击位置 pos 去选择 形状或顶点
+                self.repaint()  # 触发界面重绘（立刻或异步根据框架），以便马上把新的选中状态反映在画面上（比如高亮、控制点显示、边框颜色变化等）。
+            self.prevPoint = pos  # 把当前点击位置保存到 self.prevPoint,这个变量通常用于后续的拖拽/移动逻辑（
 
     def mouseReleaseEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
@@ -545,7 +545,7 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
         self.storeShapes()
         return True
 
-    def hideBackroundShapes(self, value): # 隐藏背景shape
+    def hideBackroundShapes(self, value):  # 隐藏背景shape
         self.hideBackround = value
         if self.selectedShapes:
             # Only hide other shapes if there is a current selection. 只有当前有选中形状时才隐藏其他背景形状，
@@ -553,7 +553,7 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
             self.setHiding(True)
             self.update()
 
-    def setHiding(self, enable=True):  # 控制内部变量 _hideBackround，是否真正执行隐藏背景形状的逻辑,只有enable=True时，才使用self.hideBackround的值决定是否隐藏；否则一定不隐藏
+    def setHiding(self, enable=True):  #  控制内部变量 _hideBackround，是否真正执行隐藏背景形状的逻辑,只有enable=True时，才使用self.hideBackround的值决定是否隐藏；否则一定不隐藏
         self._hideBackround = self.hideBackround if enable else False
 
     def canCloseShape(self):
@@ -697,19 +697,19 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
 
         # draw crosshair  # 绘制十字准线
         if (
-            self._crosshair[self._createMode]
-            and self.drawing()
-            and self.prevMovePoint
-            and not self.outOfPixmap(self.prevMovePoint)
+            self._crosshair[self._createMode]  # 检查当前创建模式（_createMode）下是否开启了十字光标
+            and self.drawing()  # 判断当前是否正在绘制
+            and self.prevMovePoint  # 确保鼠标有上一次位置
+            and not self.outOfPixmap(self.prevMovePoint)  # 检查上一次鼠标位置是否在图像范围内（pixmap 内）
         ):
-            p.setPen(QtGui.QColor(0, 0, 0))
-            p.drawLine(
+            p.setPen(QtGui.QColor(0, 0, 0))  # 设置画笔颜色为黑色 (0, 0, 0)，用于绘制十字线。
+            p.drawLine(  # 绘制水平线
                 0,
                 int(self.prevMovePoint.y() * self.scale),
-                self.width() - 1,
+                self.width() - 1,  # 直接获取的是画布的宽和高
                 int(self.prevMovePoint.y() * self.scale),
             )
-            p.drawLine(
+            p.drawLine(  # 绘制垂直线
                 int(self.prevMovePoint.x() * self.scale),
                 0,
                 int(self.prevMovePoint.x() * self.scale),
@@ -718,18 +718,18 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
 
         Shape.scale = self.scale  # 绘制已有形状,可能有标签就绘制上去。
         for shape in self.shapes:
-            if (shape.selected or not self._hideBackround) and self.isVisible(shape):
-                shape.fill = shape.selected or shape == self.hShape
-                shape.paint(p)
+            if (shape.selected or not self._hideBackround) and self.isVisible(shape):  # 形状被选中，或者不隐藏背景,形状是可见的
+                shape.fill = shape.selected or shape == self.hShape  # 如果形状被选中，或者形状是高亮形状则填充
+                shape.paint(p) # 调用形状自身的绘制方法，把它绘制到画布 p 上
         if self.current:  # 绘制当前正在绘制的形状
-            self.current.paint(p)
-            assert len(self.line.points) == len(self.line.point_labels)
-            self.line.paint(p)
+            self.current.paint(p)  # 绘制当前形状
+            assert len(self.line.points) == len(self.line.point_labels)  # 检查每个绘制点都有对应的标签，保证数据完整性
+            self.line.paint(p)  # 绘制当前形状对应的辅助线（self.line 通常是鼠标轨迹或多边形边）
         if self.selectedShapesCopy:  # 绘制选中的复制形状，复制shape其实就是另外绘制一个shape
             for s in self.selectedShapesCopy:
                 s.paint(p)
 
-        if not self.current:  # 处理多边形绘制
+        if not self.current:  # 结束 QPainter 的绘制（释放资源）
             p.end()
             return
 
@@ -774,18 +774,18 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
         drawing_shape.paint(p)
         p.end()
 
-    def transformPos(self, point):
+    def transformPos(self, point):  # 从 widget 的逻辑坐标转成 QPainter 的逻辑坐标。
         """Convert from widget-logical coordinates to painter-logical ones."""
-        return point / self.scale - self.offsetToCenter()
+        return point / self.scale - self.offsetToCenter()  # self.offsetToCenter() 就是在左上方，没显示出来的。相当于起始点变了。?还要考虑滑动条
 
     def offsetToCenter(self):
         s = self.scale
-        area = super(Canvas, self).size()
-        w, h = self.pixmap.width() * s, self.pixmap.height() * s
+        area = super(Canvas, self).size()  # 窗口区域
+        w, h = self.pixmap.width() * s, self.pixmap.height() * s  # 图像
         aw, ah = area.width(), area.height()
         x = (aw - w) / (2 * s) if aw > w else 0
         y = (ah - h) / (2 * s) if ah > h else 0
-        return QtCore.QPointF(x, y)
+        return QtCore.QPointF(x, y)  #　计算把图像居中所需的左右/上下留白的一半，并转换到画笔坐标
 
     def outOfPixmap(self, p):
         w, h = self.pixmap.width(), self.pixmap.height()
@@ -802,13 +802,13 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
                     labelme.utils.img_qt_to_arr(self.pixmap.toImage()).tobytes()
                 ],
             )
-        self.current.close()
+        self.current.close()  # 结束绘制
 
-        self.shapes.append(self.current)
-        self.storeShapes()
+        self.shapes.append(self.current)  # 把当前完成的形状加入 self.shapes 列表，保存为已有形状。
+        self.storeShapes()  # 保存/缓存所有形状到内存或文件（LabelMe 里通常会在 JSON 文件里保存形状数据）。
         self.current = None
-        self.setHiding(False)
-        self.newShape.emit()
+        self.setHiding(False)  # 恢复形状显示状态（可能在绘制时隐藏了部分内容）
+        self.newShape.emit()  # 下次鼠标开始绘制时会创建新的 current 对象。
         self.update()
 
     def closeEnough(self, p1, p2):
@@ -875,13 +875,13 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
 
     # These two, along with a call to adjustSize are required for the
     # scroll area.
-    def sizeHint(self):
+    def sizeHint(self):  # Qt 中 QWidget 的一个方法, 它告诉布局管理器 这个控件希望的默认大小。Qt 里 布局系统会自动调用它
         return self.minimumSizeHint()
 
-    def minimumSizeHint(self):
-        if self.pixmap:
+    def minimumSizeHint(self):  # minimumSizeHint() 也是 QWidget 的方法。它告诉布局管理器 这个控件能接受的最小合理大小，小于这个尺寸可能显示不正常。
+        if self.pixmap:  # 判断画布上是否有 pixmap（图像）。如果有，就根据 pixmap 的尺寸计算最小大小。
             return self.scale * self.pixmap.size()
-        return super(Canvas, self).minimumSizeHint()
+        return super(Canvas, self).minimumSizeHint()  # 如果有，就根据 pixmap 的尺寸计算最小大小。意思是退回到默认最小尺寸。
 
     def wheelEvent(self, ev):  # ev 是 QWheelEvent 对象，包含滚轮滚动的各种信息
         mods = ev.modifiers()  #  获取在滚轮滚动时按下的键盘修饰键; 返回的是一个标志位，可以用 QtCore.Qt.ControlModifier、QtCore.Qt.ShiftModifier 等进行判断。
@@ -896,27 +896,27 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
             self.scrollRequest.emit(delta.y(), QtCore.Qt.Vertical)
         ev.accept()  #　标记事件已被处理，不再传递给父类或默认事件处理。
 
-    def moveByKeyboard(self, offset):
+    def moveByKeyboard(self, offset):  # 用键盘移动已选中形状的逻辑。
         if self.selectedShapes:
             self.boundedMoveShapes(self.selectedShapes, self.prevPoint + offset)
             self.repaint()
             self.movingShape = True
 
     def keyPressEvent(self, ev):
-        modifiers = ev.modifiers()
-        key = ev.key()
-        if self.drawing():
-            if key == QtCore.Qt.Key_Escape and self.current:
+        modifiers = ev.modifiers()  # 获取按键修饰符（如 Shift、Ctrl、Alt）
+        key = ev.key()  # 获取按下的键。
+        if self.drawing():  # 如果当前处于 绘制模式（正在绘制新形状）
+            if key == QtCore.Qt.Key_Escape and self.current:  # Esc 键：取消当前正在绘制的形状。
                 self.current = None
-                self.drawingPolygon.emit(False)
+                self.drawingPolygon.emit(False)  # 通过信号通知外部绘制结束。
                 self.update()
-            elif key == QtCore.Qt.Key_Return and self.canCloseShape():
-                self.finalise()
-            elif modifiers == QtCore.Qt.AltModifier:
+            elif key == QtCore.Qt.Key_Return and self.canCloseShape():  # Enter 键：完成当前形状的绘制。判断当前形状是否满足闭合条件（例如多边形至少3个点）。
+                self.finalise()  # 将当前形状固定为最终状态。
+            elif modifiers == QtCore.Qt.AltModifier:  # 如果按下 Alt 键，关闭吸附功能（通常用在对齐或吸附到网格/点时）
                 self.snapping = False
-        elif self.editing():
+        elif self.editing():  # 如果当前处于 绘制模式（正在绘制新形状）, 上下左右箭头：移动选中的形状。
             if key == QtCore.Qt.Key_Up:
-                self.moveByKeyboard(QtCore.QPointF(0.0, -MOVE_SPEED))
+                self.moveByKeyboard(QtCore.QPointF(0.0, -MOVE_SPEED))  # MOVE_SPEED 是每次移动的像素（或单位）。调用 moveByKeyboard 进行实际移动。
             elif key == QtCore.Qt.Key_Down:
                 self.moveByKeyboard(QtCore.QPointF(0.0, MOVE_SPEED))
             elif key == QtCore.Qt.Key_Left:
@@ -926,7 +926,7 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
 
     def keyReleaseEvent(self, ev):
         modifiers = ev.modifiers()
-        if self.drawing():
+        if self.drawing():  # 如果正在绘制，并且 没有按下任何修饰键，恢复吸附功能。
             if int(modifiers) == 0:
                 self.snapping = True
         elif self.editing():
@@ -938,7 +938,7 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
 
                 self.movingShape = False
 
-    def setLastLabel(self, text, flags):
+    def setLastLabel(self, text, flags):  # 为最新绘制的形状设置标签和状态，同时更新备份，保证撤销/重做机制一致。
         assert text
         self.shapes[-1].label = text
         self.shapes[-1].flags = flags
@@ -946,7 +946,7 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
         self.storeShapes()
         return self.shapes[-1]
 
-    def undoLastLine(self):
+    def undoLastLine(self):  # 撤销最后绘制的形状，但保留顶点用于继续绘制或修改。
         assert self.shapes
         self.current = self.shapes.pop()
         self.current.setOpen()
@@ -959,7 +959,7 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
             self.current = None
         self.drawingPolygon.emit(True)
 
-    def undoLastPoint(self):
+    def undoLastPoint(self):  # 撤销当前形状的最后一个点，同时更新绘制状态和界面显示。
         if not self.current or self.current.isClosed():
             return
         self.current.popPoint()

@@ -458,8 +458,8 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
                         shape_type="points"
                         if self.createMode in ["ai_polygon", "ai_mask"]
                         else self.createMode
-                    )
-                    self.current.addPoint(pos, label=0 if is_shift_pressed else 1)
+                    )  # 创建一个shape类管理形状。
+                    self.current.addPoint(pos, label=0 if is_shift_pressed else 1)  # 根据是否按压shift决定点的类型。
                     if self.createMode == "point":
                         self.finalise()
                     elif (
@@ -470,16 +470,16 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
                     else:
                         if self.createMode == "circle":
                             self.current.shape_type = "circle"
-                        self.line.points = [pos, pos]
+                        self.line.points = [pos, pos]  # 常用于绘制过程中显示起点和当前鼠标位置，意思是：刚开始画的时候，起点和终点都在同一个位置 pos（即鼠标点击的地方）。，后面拖动鼠标时，会更新第二个点。
                         if (
                             self.createMode in ["ai_polygon", "ai_mask"]
                             and is_shift_pressed
                         ):
-                            self.line.point_labels = [0, 0]
+                            self.line.point_labels = [0, 0]  # 如果是 AI 辅助绘制模式（ai_polygon 或 ai_mask），并且用户按下了 Shift 键，那么两个点的标签都设为 0。
                         else:
-                            self.line.point_labels = [1, 1]
+                            self.line.point_labels = [1, 1]   # 否则，标签设为 1，表示“正样本点”或普通点。
                         self.setHiding()
-                        self.drawingPolygon.emit(True)
+                        self.drawingPolygon.emit(True)  # 发出一个 Qt 信号（drawingPolygon），参数是 True,主要是禁用一些东西
                         self.update()
             elif self.editing():
                 if self.selectedEdge() and ev.modifiers() == QtCore.Qt.AltModifier:
@@ -720,7 +720,7 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
         for shape in self.shapes:
             if (shape.selected or not self._hideBackround) and self.isVisible(shape):  # 形状被选中，或者不隐藏背景,形状是可见的
                 shape.fill = shape.selected or shape == self.hShape  # 如果形状被选中，或者形状是高亮形状则填充
-                shape.paint(p) # 调用形状自身的绘制方法，把它绘制到画布 p 上
+                shape.paint(p)  # 调用形状自身的绘制方法，把它绘制到画布 p 上
         if self.current:  # 绘制当前正在绘制的形状
             self.current.paint(p)  # 绘制当前形状
             assert len(self.line.points) == len(self.line.point_labels)  # 检查每个绘制点都有对应的标签，保证数据完整性
@@ -737,25 +737,25 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
             self.createMode == "polygon"
             and self.fillDrawing()
             and len(self.current.points) >= 2
-        ):
+        ):  # 只有满足这三个条件时，才会执行多边形填充相关操作。
             drawing_shape = self.current.copy()
-            if drawing_shape.fill_color.getRgb()[3] == 0:
+            if drawing_shape.fill_color.getRgb()[3] == 0:  # 如果是完全透明（alpha=0），打印警告,：防止用户想填充但颜色透明导致看不到效果。
                 logger.warning(
                     "fill_drawing=true, but fill_color is transparent,"
                     " so forcing to be opaque."
                 )
-                drawing_shape.fill_color.setAlpha(64)
-            drawing_shape.addPoint(self.line[1])
+                drawing_shape.fill_color.setAlpha(64)  # 强制将填充颜色设置为半透明（alpha=64），确保填充可见
+            drawing_shape.addPoint(self.line[1])  # 将鼠标或线段的终点添加到 drawing_shape 的点列表里。通常在鼠标拖动绘制多边形时，临时显示最后一条边。
 
         if self.createMode not in ["ai_polygon", "ai_mask"]:  # 处理 AI 辅助绘制
             p.end()
             return
 
-        drawing_shape = self.current.copy()
+        drawing_shape = self.current.copy()  # 次拷贝当前形状，生成 drawing_shape
         drawing_shape.addPoint(
             point=self.line.points[1],
             label=self.line.point_labels[1],
-        )
+        )  # 这一步是为了 AI 模式下使用的形状更新。这一步是为了 AI 模式下使用的形状更新。
         if self.createMode in ["ai_polygon", "ai_mask"]:
             if self._sam is None:
                 logger.warning("SAM model is not set yet")
@@ -768,7 +768,7 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
                 image_embedding=self._sam_embedding[
                     labelme.utils.img_qt_to_arr(self.pixmap.toImage()).tobytes()
                 ],
-            )
+            )  # 在 AI 辅助模式下自动调整形状轮廓，使绘制更智能。
         drawing_shape.fill = self.fillDrawing()
         drawing_shape.selected = True
         drawing_shape.paint(p)
@@ -787,7 +787,7 @@ class Canvas(QtWidgets.QWidget):  # QGraphicsView 本身只是一个视图，它
         y = (ah - h) / (2 * s) if ah > h else 0
         return QtCore.QPointF(x, y)  #　计算把图像居中所需的左右/上下留白的一半，并转换到画笔坐标
 
-    def outOfPixmap(self, p):
+    def outOfPixmap(self, p):  # 判断点是不是在图像区域内。
         w, h = self.pixmap.width(), self.pixmap.height()
         return not (0 <= p.x() <= w - 1 and 0 <= p.y() <= h - 1)
 

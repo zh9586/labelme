@@ -14,29 +14,29 @@ import labelme.utils
 
 class Shape(object):
     # Render handles as squares
-    P_SQUARE = 0
+    P_SQUARE = 0  # 顶点控制柄绘制为方形。
 
     # Render handles as circles
-    P_ROUND = 1
+    P_ROUND = 1  # 或圆形
 
     # Flag for the handles we would move if dragging
-    MOVE_VERTEX = 0
+    MOVE_VERTEX = 0  # 高亮模式,正在拖动的点
 
     # Flag for all other handles on the current shape
-    NEAR_VERTEX = 1
+    NEAR_VERTEX = 1  # 高亮模式,正在靠近的点
 
-    PEN_WIDTH = 2
+    PEN_WIDTH = 2  # 边线宽度
 
     # The following class variables influence the drawing of all shape objects.
-    line_color = None
+    line_color = None  # 颜色相关（类变量，所有实例共享，除非实例里覆盖）
     fill_color = None
     select_line_color = None
     select_fill_color = None
     vertex_fill_color = None
     hvertex_fill_color = None
-    point_type = P_ROUND
-    point_size = 8
-    scale = 1.0
+    point_type = P_ROUND  # 控制点的大小
+    point_size = 8  # 大小
+    scale = 1.0  # 全局缩放因子（命中检测与绘制都依赖它）
 
     def __init__(
         self,
@@ -70,7 +70,7 @@ class Shape(object):
             self.MOVE_VERTEX: (1.5, self.P_SQUARE),
         }
 
-        self._closed = False
+        self._closed = False  # 对多边形而言，是否闭合
 
         if line_color is not None:
             # Override the class line_color attribute
@@ -78,7 +78,7 @@ class Shape(object):
             # is used for drawing the pending line a different color.
             self.line_color = line_color
 
-    def _scale_point(self, point: QtCore.QPointF) -> QtCore.QPointF:
+    def _scale_point(self, point: QtCore.QPointF) -> QtCore.QPointF:  # 把一个点按照当前全局比例 self.scale 进行缩放
         return QtCore.QPointF(point.x() * self.scale, point.y() * self.scale)
 
     def setShapeRefined(self, shape_type, points, point_labels, mask=None):
